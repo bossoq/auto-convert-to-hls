@@ -52,10 +52,10 @@ export const DefaultRenditions = [
 export const DefaultCommands = [
   'run',
   '--rm',
-  '-it',
+  '-i',
   '--device=/dev/dri',
   '-v',
-  '/mnt/disks/CacheDrive/recordsings:/source',
+  '/mnt/disks/CacheDrive/recordings:/source',
   '-v',
   '/mnt/disks/SlowPhatty/VOD:/dest',
   'akashisn/ffmpeg:5.0-qsv',
