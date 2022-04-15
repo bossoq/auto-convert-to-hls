@@ -4,7 +4,7 @@ import { Transcoder } from './ffmpeg'
 const getAllFiles = (dir: string) => {
   const files = fs.readdirSync(dir)
   let filterFiles = files.filter(file => file.endsWith('.mp4'))
-  filterFiles = filterFiles.filter(file => file.startsWith('._'))
+  filterFiles = filterFiles.filter(file => !file.startsWith('._'))
   return filterFiles.map(file => {
     return {
       name: file.split('.mp4')[0],
