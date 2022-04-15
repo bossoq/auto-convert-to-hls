@@ -102,8 +102,6 @@ class Transcode {
 ${r.height}.m3u8`
       }
       const m3u8Path = `${this.outputPath}/index.m3u8`
-      if (!fs.existsSync(this.outputPath))
-        fs.mkdirSync(this.outputPath, { recursive: true })
       fs.writeFileSync(m3u8Path, m3u8Playlist)
 
       resolve(m3u8Path)

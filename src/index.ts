@@ -17,6 +17,7 @@ const converter = async () => {
   const files = getAllFiles(dir)
   for (const file of files) {
     const outDir = `/dest/${file.name}`
+    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true })
     console.log(`Transcoding ${file.name} ${outDir}`)
     const t = new Transcoder(file.path, outDir, { showLogs: true })
     try {
