@@ -5,10 +5,17 @@ import fs from 'fs'
 class Transcode {
   inputPath: string
   outputPath: string
+  realPath: string
   options: any | undefined
-  constructor(inputPath: string, outputPath: string, options: any) {
+  constructor(
+    inputPath: string,
+    outputPath: string,
+    realPath: string,
+    options: any
+  ) {
     this.inputPath = inputPath
     this.outputPath = outputPath
+    this.realPath = realPath
     this.options = options || {}
   }
 
@@ -16,7 +23,7 @@ class Transcode {
     return new Promise(async (resolve, reject) => {
       const commands: any = await this.buildCommands()
       const masterPlaylist = await this.writePlaylist()
-      spawn('mkdir', ['-p', this.outputPath])
+      spawn('mkdir', ['-p', this.realPath])
       const ls = spawn('docker', commands)
       let showLogs = true
       if (this.options.showLogs == false) {
@@ -102,7 +109,7 @@ class Transcode {
         }
 ${r.height}.m3u8`
       }
-      const m3u8Path = `${this.outputPath}/index.m3u8`
+      const m3u8Path = `${this.realPath}/index.m3u8`
       fs.writeFileSync(m3u8Path, m3u8Playlist)
 
       resolve(m3u8Path)

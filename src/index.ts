@@ -17,8 +17,8 @@ const converter = async () => {
   const files = getAllFiles(dir)
   for (const file of files) {
     const outDir = `/dest/${file.name}`
-    console.log(`Transcoding ${file.name} ${outDir}`)
-    const t = new Transcoder(file.path, outDir, { showLogs: true })
+    const realPath = `/mnt/disks/SlowPhatty/VOD/${file.name}`
+    const t = new Transcoder(file.path, outDir, realPath, { showLogs: true })
     try {
       const hlsPath = await t.transcode()
       console.log(`Transcoded ${file.name} to ${hlsPath}`)
