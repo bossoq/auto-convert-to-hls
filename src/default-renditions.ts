@@ -49,5 +49,29 @@ export const DefaultRenditions = [
   },
 ]
 
-export const DefaultCommands =
-  'docker run --rm -it --device=/dev/dri -v /mnt/disks/CacheDrive/recordsings:/source -v /mnt/disks/SlowPhatty/VOD:/dest akashisn/ffmpeg:5.0-qsv -y -init_hw_device qsv=qsv:hw -hwaccel qsv -filter_hw_device qsv -hwaccel_output_format qsv -fflags +discardcorrupt -analyzeduration 10M -probesize 32M'
+export const DefaultCommands = [
+  'run',
+  '--rm',
+  '-it',
+  '--device=/dev/dri',
+  '-v',
+  '/mnt/disks/CacheDrive/recordsings:/source',
+  '-v',
+  '/mnt/disks/SlowPhatty/VOD:/dest',
+  'akashisn/ffmpeg:5.0-qsv',
+  '-y',
+  '-init_hw_device',
+  'qsv=qsv:hw',
+  '-hwaccel',
+  'qsv',
+  '-filter_hw_device',
+  'qsv',
+  '-hwaccel_output_format',
+  'qsv',
+  '-fflags',
+  '+discardcorrupt',
+  '-analyzeduration',
+  '10M',
+  '-probesize',
+  '32M',
+]

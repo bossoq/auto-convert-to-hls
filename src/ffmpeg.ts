@@ -16,7 +16,7 @@ class Transcode {
     return new Promise(async (resolve, reject) => {
       const commands: any = await this.buildCommands()
       const masterPlaylist = await this.writePlaylist()
-      const ls = spawn(DefaultCommands, commands)
+      const ls = spawn('docker', commands)
       let showLogs = true
       if (this.options.showLogs == false) {
         showLogs = false
@@ -46,7 +46,8 @@ class Transcode {
 
   buildCommands() {
     return new Promise((resolve, _reject) => {
-      let commands = ['-i', this.inputPath]
+      let commands = DefaultCommands
+      commands = commands.concat(['-i', this.inputPath])
       const renditions = this.options.renditions || DefaultRenditions
       for (let i = 0, len = renditions.length; i < len; i++) {
         const r = renditions[i]

@@ -13,7 +13,7 @@ const getAllFiles = (dir: string) => {
 }
 
 const converter = () => {
-  const dir = '/mnt/disks/CacheDrive/recordsings'
+  const dir = '/mnt/disks/CacheDrive/recordings'
   const outDir = '/dest'
   const files = getAllFiles(dir)
   files.forEach(async file => {
