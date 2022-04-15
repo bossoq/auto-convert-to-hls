@@ -12,11 +12,12 @@ const getAllFiles = (dir: string) => {
   })
 }
 
-const converter = () => {
+const converter = async () => {
   const dir = '/mnt/disks/CacheDrive/recordings'
   const files = getAllFiles(dir)
-  files.forEach(async file => {
+  for (const file of files) {
     const outDir = `/dest/${file.name}`
+    console.log(`Transcoding ${file.name} ${outDir}`)
     const t = new Transcoder(file.path, outDir, { showLogs: true })
     try {
       const hlsPath = await t.transcode()
@@ -24,7 +25,18 @@ const converter = () => {
     } catch (e) {
       console.log(`Failed to transcode ${file.name} ${e}`)
     }
-  })
+  }
+  // files.forEach(async file => {
+  //   const outDir = `/dest/${file.name}`
+  //   console.log(`Transcoding ${file.name} ${outDir}`)
+  //   const t = new Transcoder(file.path, outDir, { showLogs: true })
+  //   try {
+  //     const hlsPath = await t.transcode()
+  //     console.log(`Transcoded ${file.name} to ${hlsPath}`)
+  //   } catch (e) {
+  //     console.log(`Failed to transcode ${file.name} ${e}`)
+  //   }
+  // })
 }
 
 converter()
