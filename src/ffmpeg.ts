@@ -16,6 +16,7 @@ class Transcode {
     return new Promise(async (resolve, reject) => {
       const commands: any = await this.buildCommands()
       const masterPlaylist = await this.writePlaylist()
+      spawn('mkdir', ['-p', this.outputPath])
       const ls = spawn('docker', commands)
       let showLogs = true
       if (this.options.showLogs == false) {
