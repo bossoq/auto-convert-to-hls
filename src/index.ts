@@ -19,6 +19,7 @@ const converter = async () => {
   for (const file of files) {
     const outDir = `/dest/${file.name}`
     const realPath = `/mnt/disks/SlowPhatty/VOD/${file.name}`
+    fs.mkdirSync(realPath, { recursive: true })
     const t = new Transcoder(file.path, outDir, realPath, { showLogs: true })
     try {
       const hlsPath = await t.transcode()
@@ -27,17 +28,6 @@ const converter = async () => {
       console.log(`Failed to transcode ${file.name} ${e}`)
     }
   }
-  // files.forEach(async file => {
-  //   const outDir = `/dest/${file.name}`
-  //   console.log(`Transcoding ${file.name} ${outDir}`)
-  //   const t = new Transcoder(file.path, outDir, { showLogs: true })
-  //   try {
-  //     const hlsPath = await t.transcode()
-  //     console.log(`Transcoded ${file.name} to ${hlsPath}`)
-  //   } catch (e) {
-  //     console.log(`Failed to transcode ${file.name} ${e}`)
-  //   }
-  // })
 }
 
 converter()
