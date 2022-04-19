@@ -27,6 +27,11 @@ const converter = async () => {
     } catch (e) {
       console.log(`Failed to transcode ${file.name} ${e}`)
     }
+    fs.renameSync(
+      `${dir}/${file.name}.mp4`,
+      `${dir}/converted/${file.name}.mp4`
+    )
+    console.log(`Successfully moved file ${file.name}.mp4`)
   }
 }
 
