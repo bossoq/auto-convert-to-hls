@@ -1,5 +1,10 @@
 import { spawn } from 'child_process'
-import { FrameCountCommand, ScreenshotCommand, TranscodeCommand, DefaultRenditions } from './default-renditions'
+import {
+  FrameCountCommand,
+  ScreenshotCommand,
+  TranscodeCommand,
+  DefaultRenditions,
+} from './default-renditions'
 import fs from 'fs'
 import type { Options, Queue } from '../types'
 
@@ -41,7 +46,7 @@ export class Transcoder {
       totalFramesCount: this.totalFramesCount,
       fps: this.currentFPS,
       speed: this.currentSpeed,
-      progress: (this.currentFrames/this.totalFramesCount*100).toFixed(2),
+      progress: ((this.currentFrames / this.totalFramesCount) * 100).toFixed(2),
     }
   }
 
@@ -59,7 +64,7 @@ export class Transcoder {
     if (!queue) return
     this.busy = true
     this.createHLS(queue)
-    }
+  }
 
   private async createHLS(queue: Queue) {
     this.name = queue.name
@@ -67,12 +72,18 @@ export class Transcoder {
     const outputPath = await this.makeOutputDir(queue)
     if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
     const masterPlaylist = await this.writePlaylist(queue)
-    if (this.options.showLogs) console.log(`Create Master Playlist: ${masterPlaylist}`)
-    const totalFramesCommands: string[] = await this.buildFrameCountCommands(queue)
-    const screenshotCommands: string[] = await this.buildScreenshotCommands(queue)
+    if (this.options.showLogs)
+      console.log(`Create Master Playlist: ${masterPlaylist}`)
+    const totalFramesCommands: string[] = await this.buildFrameCountCommands(
+      queue
+    )
+    const screenshotCommands: string[] = await this.buildScreenshotCommands(
+      queue
+    )
     const transcodeCommands: string[] = await this.buildTranscodeCommands(queue)
     this.totalFramesCount = await this.getFramesCount(totalFramesCommands)
-    if (this.options.showLogs) console.log(`Total Frames: ${this.totalFramesCount}`)
+    if (this.options.showLogs)
+      console.log(`Total Frames: ${this.totalFramesCount}`)
     const screenshot = await this.screenshot(screenshotCommands)
     if (this.options.showLogs) console.log(screenshot)
     const transcode = await this.transcode(transcodeCommands)
@@ -93,7 +104,10 @@ export class Transcoder {
   }
 
   private moveFinished(queue: Queue): string {
-    const movePath = `${queue.inputPath.replace(`${queue.name}.mp4`, '')}converted/${queue.name}.mp4`
+    const movePath = `${queue.inputPath.replace(
+      `${queue.name}.mp4`,
+      ''
+    )}converted/${queue.name}.mp4`
     fs.renameSync(queue.inputPath, movePath)
     return movePath
   }
@@ -135,7 +149,7 @@ export class Transcoder {
       })
     })
   }
-  
+
   private transcode(commands: string[]): Promise<string> {
     return new Promise((resolve, reject) => {
       const child = spawn('ffmpeg', commands)
@@ -147,7 +161,15 @@ export class Transcoder {
         if (frameMatch) this.currentFrames = parseInt(frameMatch[1])
         if (fpsMatch) this.currentFPS = parseFloat(fpsMatch[1])
         if (speedMatch) this.currentSpeed = parseFloat(speedMatch[1])
-        if (this.options.showLogs) console.log(`Job: ${this.name} | Progress: ${(this.currentFrames/this.totalFramesCount*100).toFixed(2)}% | FPS: ${this.currentFPS.toFixed(2)} | Speed: ${this.currentSpeed.toFixed(2)}`)
+        if (this.options.showLogs)
+          console.log(
+            `Job: ${this.name} | Progress: ${(
+              (this.currentFrames / this.totalFramesCount) *
+              100
+            ).toFixed(2)}% | FPS: ${this.currentFPS.toFixed(
+              2
+            )} | Speed: ${this.currentSpeed.toFixed(2)}`
+          )
       })
       child.stderr.on('data', (data) => {
         const logs: string = data.toString()
@@ -157,7 +179,15 @@ export class Transcoder {
         if (frameMatch) this.currentFrames = parseInt(frameMatch[1])
         if (fpsMatch) this.currentFPS = parseFloat(fpsMatch[1])
         if (speedMatch) this.currentSpeed = parseFloat(speedMatch[1])
-        if (this.options.showLogs) console.log(`Job: ${this.name} | Progress: ${(this.currentFrames/this.totalFramesCount*100).toFixed(2)}% | FPS: ${this.currentFPS.toFixed(2)} | Speed: ${this.currentSpeed.toFixed(2)}`)
+        if (this.options.showLogs)
+          console.log(
+            `Job: ${this.name} | Progress: ${(
+              (this.currentFrames / this.totalFramesCount) *
+              100
+            ).toFixed(2)}% | FPS: ${this.currentFPS.toFixed(
+              2
+            )} | Speed: ${this.currentSpeed.toFixed(2)}`
+          )
       })
       child.on('exit', (code) => {
         if (code === 0) {
@@ -203,8 +233,8 @@ export class Transcoder {
           `scale_npp=-1:${r.height}`,
           // `scale=-1:${r.height}`,
           '-c:v',
-          // 'h264_videotoolbox',
           'h264_nvenc',
+          // 'h264_videotoolbox',
           '-preset',
           'medium',
           '-c:a',
@@ -254,7 +284,9 @@ export class Transcoder {
       for (let i = 0, len = renditions.length; i < len; i++) {
         const r = renditions[i]
         m3u8Playlist += `
-#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${r.height}${r.height}.m3u8`
+#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${
+          r.height
+        }${r.height}.m3u8`
       }
       const m3u8Path = `${queue.outputPath}/index.m3u8`
       fs.writeFileSync(m3u8Path, m3u8Playlist)

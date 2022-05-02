@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "concurrently --kill-others \"yarn backend start\" \"yarn web dev\"",
+    "start": "concurrently --kill-others \"yarn backend start\" \"yarn web dev --host\"",
     "dev": "concurrently --kill-others \"yarn backend dev\" \"yarn web dev\"",
     "backend": "yarn workspace backend",
     "web": "yarn workspace web"

@@ -8,7 +8,7 @@ const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
 
-const transcoder = new Transcoder({ showLogs: true })
+const transcoder = new Transcoder({ showLogs: false })
 
 const getAllFiles = (dir: string): Queue[] => {
   const files = fs.readdirSync(dir)
