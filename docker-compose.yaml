@@ -13,6 +13,7 @@ services:
       - SOURCE
       - DEST
       - PORT
+    runtime: nvidia
     networks:
       br0:
         ipv4_address: '10.0.3.131'
