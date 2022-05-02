@@ -1,4 +1,4 @@
-FROM ghcr.io/bossoq/ffmpeg-node-16:1.1
+FROM ghcr.io/bossoq/ffmpeg-node-16:1.2
 
 WORKDIR /app
 
