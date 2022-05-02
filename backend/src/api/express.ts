@@ -1,7 +1,6 @@
 import express from 'express'
 import type { Transcoder } from '../ffmpeg/ffmpeg'
 
-
 export class API {
   private app: express.Application
   private port: number

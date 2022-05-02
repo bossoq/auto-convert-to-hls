@@ -2,15 +2,6 @@ FROM ghcr.io/bossoq/ffmpeg-node-16:1.1
 
 WORKDIR /app
 
-ENV NVIDIA_VISIBLE_DEVICES all
-ENV NVIDIA_DRIVER_CAPABILITIES all
-
-ENV NODE_ENV production
-
-ENV SOURCE /source/
-ENV DEST /dest/
-ENV PORT 3000
-
 COPY package.json yarn.lock tsconfig.json ./
 
 RUN yarn

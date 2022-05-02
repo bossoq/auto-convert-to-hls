@@ -5,3 +5,4 @@ dist
 .env
 test
 out
+.svelte-kit

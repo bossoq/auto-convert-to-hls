@@ -2,7 +2,7 @@ version: '3'
 
 services:
   backend:
-    build: .
+    build: ./backend
     container_name: autohls-backend
     volumes:
       - /mnt/disks/CacheDrive/recordings:/source

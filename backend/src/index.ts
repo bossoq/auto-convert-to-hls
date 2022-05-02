@@ -6,16 +6,16 @@ import type { Queue } from './types'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
-const Port = process.env.PORT || '3000'
+const Port = process.env.PORT || '4000'
 
 const transcoder = new Transcoder({ showLogs: true })
 
 const getAllFiles = (dir: string): Queue[] => {
   const files = fs.readdirSync(dir)
   const filterFiles = files.filter(
-    file => file.endsWith('.mp4') && !file.startsWith('._')
+    (file) => file.endsWith('.mp4') && !file.startsWith('._')
   )
-  return filterFiles.map(file => {
+  return filterFiles.map((file) => {
     return {
       name: file.split('.mp4')[0],
       inputPath: `${dir}${file}`,
@@ -25,7 +25,7 @@ const getAllFiles = (dir: string): Queue[] => {
 }
 
 const watcher = watch(SourcePath, {
-  filter: f => /\.mp4$/.test(f) && !/^\._/.test(f),
+  filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
 })
 
 watcher.on('change', (evt, name) => {
