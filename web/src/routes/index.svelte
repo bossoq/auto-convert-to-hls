@@ -11,12 +11,12 @@
     totalFramesCount: 0,
     fps: 0,
     speed: 0,
-    progress: 'NaN',
+    progress: 'NaN'
   }
 
   let queue = {
     length: 0,
-    queue: [],
+    queue: []
   }
 
   const progress = tweened(0, {
@@ -40,14 +40,13 @@
     setInterval(() => {
       getStatus()
       getQueue()
-      if (progress !== 'NaN') {
+      if (currentStatus.progress !== 'NaN') {
         progress.set(parseFloat(currentStatus.progress))
       } else {
         progress.set(0)
       }
     }, 1000)
   })
-
 </script>
 
 <div class="w-full h-screen flex flex-col gap-6 justify-center items-center bg-white dark:bg-black">
@@ -55,33 +54,54 @@
     <span>Auto HLS Status</span>
   </h1>
   <div class="w-4/5 flex flex-col gap-2 justify-start items-center">
-    <p class="font-medium text-lg sm:text-4xl dark:text-teal-200 text-teal-800">Status: {currentStatus.busy ? 'Converting' : 'Available'}</p>
+    <p class="font-medium text-lg sm:text-4xl dark:text-teal-200 text-teal-800">
+      Status: {currentStatus.busy ? 'Converting' : 'Available'}
+    </p>
     {#if currentStatus.busy}
-    <p class="text-base sm:text-2xl dark:text-teal-200 text-teal-800">Current Job: {currentStatus.job} ({currentStatus.fps} fps) ({currentStatus.speed}x) ({$progress.toFixed(2)}%)</p>
-    <div class="w-full dark:bg-gray-600 bg-gray-200 h-5 rounded-full">
-      <div class="dark:bg-teal-200 bg-teal-800 h-5 rounded-full text-lg text-center leading-none p-0.5 overflow-hidden" style="width: {$progress.toFixed(2)}%">{currentStatus.currentFrames}/{currentStatus.totalFramesCount} frames ({$progress.toFixed(2)}%)</div>
-    </div>
+      <p class="text-base sm:text-2xl dark:text-teal-200 text-teal-800">
+        Current Job: {currentStatus.job} ({currentStatus.fps} fps) ({currentStatus.speed}x) ({$progress.toFixed(
+          2
+        )}%)
+      </p>
+      <div class="w-full dark:bg-gray-600 bg-gray-200 h-5 rounded-full">
+        <div
+          class="dark:bg-teal-200 bg-teal-800 h-5 rounded-full text-lg text-center leading-none p-0.5 overflow-hidden"
+          style="width: {$progress.toFixed(2)}%"
+        >
+          {currentStatus.currentFrames}/{currentStatus.totalFramesCount} frames ({$progress.toFixed(
+            2
+          )}%)
+        </div>
+      </div>
     {/if}
   </div>
   {#if queue.length > 0}
-  <div class="w-4/5 flex flex-col gap-2 justify-center items-center">
-    <p class="font-medium text-lg sm:text-4xl dark:text-teal-200 text-teal-800">Queue</p>
-    <table class="w-full table-auto border-collapse border dark:border-gray-100 border-gray-800 dark:text-teal-200 text-teal-800 text-base sm:text-2xl text-center">
-      <thead>
-        <tr>
-          <th class="border dark:border-gray-100 border-gray-800 dark:bg-gray-100 bg-gray-800 dark:text-teal-800 text-teal-200">ID</th>
-          <th class="border dark:border-gray-100 border-gray-800 dark:bg-gray-100 bg-gray-800 dark:text-teal-800 text-teal-200">Name</th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each queue.queue as job, id}
-        <tr>
-          <td class="border dark:border-gray-100 border-gray-800">{id}</td>
-          <td class="border dark:border-gray-100 border-gray-800">{job.name}</td>
-        </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
+    <div class="w-4/5 flex flex-col gap-2 justify-center items-center">
+      <p class="font-medium text-lg sm:text-4xl dark:text-teal-200 text-teal-800">Queue</p>
+      <table
+        class="w-full table-auto border-collapse border dark:border-gray-100 border-gray-800 dark:text-teal-200 text-teal-800 text-base sm:text-2xl text-center"
+      >
+        <thead>
+          <tr>
+            <th
+              class="border dark:border-gray-100 border-gray-800 dark:bg-gray-100 bg-gray-800 dark:text-teal-800 text-teal-200"
+              >ID</th
+            >
+            <th
+              class="border dark:border-gray-100 border-gray-800 dark:bg-gray-100 bg-gray-800 dark:text-teal-800 text-teal-200"
+              >Name</th
+            >
+          </tr>
+        </thead>
+        <tbody>
+          {#each queue.queue as job, id}
+            <tr>
+              <td class="border dark:border-gray-100 border-gray-800">{id}</td>
+              <td class="border dark:border-gray-100 border-gray-800">{job.name}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
 </div>
