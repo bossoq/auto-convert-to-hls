@@ -63,16 +63,14 @@
           2
         )}%)
       </p>
-      <div class="w-full dark:bg-gray-600 bg-gray-200 h-5 rounded-full">
-        <div
-          class="dark:bg-teal-200 bg-teal-800 h-5 rounded-full text-lg text-center leading-none p-0.5 overflow-hidden"
-          style="width: {$progress.toFixed(2)}%"
-        >
-          {currentStatus.currentFrames}/{currentStatus.totalFramesCount} frames ({$progress.toFixed(
-            2
-          )}%)
-        </div>
-      </div>
+      <progress
+        class="w-full dark:progress-dark progress h-5 text-base sm:text-lg text-center dark:text-teal-800 text-teal-200"
+        value={$progress.toFixed(2)}
+        max="100"
+        data-label="{currentStatus.currentFrames}/{currentStatus.totalFramesCount} frames ({$progress.toFixed(
+          2
+        )}%)"
+      />
     {/if}
   </div>
   {#if queue.length > 0}

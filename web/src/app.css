@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.dark .dark\:progress-dark::-webkit-progress-bar {
+  background-color: theme('colors.gray.200');
+  border-radius: 9999px;
+}
+.progress::-webkit-progress-bar {
+  background-color: theme('colors.gray.600');
+  border-radius: 9999px;
+}
+.dark .dark\:progress-dark::-webkit-progress-value {
+  background-color: theme('colors.teal.200');
+  border-radius: 9999px;
+}
+.progress::-webkit-progress-value {
+  background-color: theme('colors.teal.800');
+  border-radius: 9999px;
+}
+.progress::before {
+  content: attr(data-label);
+  position: absolute;
+  left: 0;
+  right: 0;
+  vertical-align: 0;
+  line-height: 1;
+}
