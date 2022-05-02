@@ -1,9 +1,9 @@
 version: '3'
 
 services:
-  backend:
-    build: ./backend
-    container_name: autohls-backend
+  autohls:
+    build: .
+    container_name: autohls
     volumes:
       - /mnt/disks/CacheDrive/recordings:/source
       - /mnt/disks/SlowPhatty/VOD:/dest

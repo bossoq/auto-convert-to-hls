@@ -13,6 +13,7 @@ COPY web/src/ ./web/src/
 COPY web/static/ ./web/static/
 COPY web/postcss.config.cjs web/svelte.config.js web/tailwind.config.js ./web/
 
+EXPOSE 3000
 EXPOSE ${PORT}
 
 CMD ["yarn", "start"]
