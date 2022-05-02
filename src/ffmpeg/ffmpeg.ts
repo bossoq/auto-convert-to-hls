@@ -77,6 +77,8 @@ export class Transcoder {
     if (this.options.showLogs) console.log(screenshot)
     const transcode = await this.transcode(transcodeCommands)
     if (this.options.showLogs) console.log(transcode)
+    const movePath = this.moveFinished(queue)
+    if (this.options.showLogs) console.log(`Move File: ${movePath}`)
     this.done()
   }
 
@@ -88,6 +90,12 @@ export class Transcoder {
     this.currentFPS = 0
     this.currentSpeed = 0
     this.start()
+  }
+
+  private moveFinished(queue: Queue): string {
+    const movePath = `${queue.inputPath.replace(`${queue.name}.mp4`, '')}converted/${queue.name}.mp4`
+    fs.renameSync(queue.inputPath, movePath)
+    return movePath
   }
 
   private getFramesCount(commands: string[]): Promise<number> {
