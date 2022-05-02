@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  backend:
+    build: .
+    container_name: autohls-backend
+    volumes:
+      - /mnt/disks/CacheDrive/recordings:/source
+      - /mnt/disks/SlowPhatty/VOD:/dest
+    environment:
+      - NVIDIA_VISIBLE_DEVICES
+      - NVIDIA_DRIVER_CAPABILITIES
+      - SOURCE
+      - DEST
+      - PORT
+    networks:
+      br0:
+        ipv4_address: '10.0.3.131'
+
+networks:
+  br0:
+    external:
+      name: br0
