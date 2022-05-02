@@ -284,9 +284,8 @@ export class Transcoder {
       for (let i = 0, len = renditions.length; i < len; i++) {
         const r = renditions[i]
         m3u8Playlist += `
-#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${
-          r.height
-        }${r.height}.m3u8`
+#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${r.height}
+${r.height}.m3u8`
       }
       const m3u8Path = `${queue.outputPath}/index.m3u8`
       fs.writeFileSync(m3u8Path, m3u8Playlist)
