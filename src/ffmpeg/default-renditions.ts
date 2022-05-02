@@ -2,7 +2,6 @@ export const DefaultRenditions = [
   {
     width: 640,
     height: 360,
-    profile: 'high',
     hlsTime: '4',
     bv: '800k',
     maxrate: '856k',
@@ -14,7 +13,6 @@ export const DefaultRenditions = [
   {
     width: 842,
     height: 480,
-    profile: 'high',
     hlsTime: '4',
     bv: '1400k',
     maxrate: '1498',
@@ -26,7 +24,6 @@ export const DefaultRenditions = [
   {
     width: 1280,
     height: 720,
-    profile: 'high',
     hlsTime: '4',
     bv: '2800k',
     maxrate: '2996k',
@@ -38,7 +35,6 @@ export const DefaultRenditions = [
   {
     width: 1920,
     height: 1080,
-    profile: 'high',
     hlsTime: '4',
     bv: '5000k',
     maxrate: '5350k',
@@ -49,37 +45,30 @@ export const DefaultRenditions = [
   },
 ]
 
-export const DefaultCommands = [
-  'run',
-  '--rm',
-  '-i',
-  '--runtime=nvidia',
-  '-e',
-  'NVIDIA_VISIBLE_DEVICES=GPU-d1ee920a-826c-254d-8535-8be053ba1bbd',
-  '-e',
-  'NVIDIA_DRIVER_CAPABILITIES=all',
-  // '--device=/dev/dri',
-  '-v',
-  '/mnt/disks/CacheDrive/recordings:/source',
-  '-v',
-  '/mnt/disks/SlowPhatty/VOD:/dest',
-  'jrottenberg/ffmpeg:4.2-nvidia',
-  // 'akashisn/ffmpeg:5.0-qsv',
+export const TranscodeCommand = [
   '-y',
-  // '-init_hw_device',
-  // 'qsv=qsv:hw',
-  '-hwaccel',
-  'cuvid',
-  '-c:v',
-  'h264_cuvid',
-  // '-filter_hw_device',
-  // 'qsv',
-  // '-hwaccel_output_format',
-  // 'qsv',
+  // '-hwaccel',
+  // 'cuvid',
+  // '-c:v',
+  // 'h264_cuvid',
   '-fflags',
   '+discardcorrupt',
   '-analyzeduration',
   '10M',
   '-probesize',
   '32M',
+]
+
+export const ScreenshotCommand = ['-y', '-ss', '00:00:10']
+
+export const FrameCountCommand = [
+  '-v',
+  'error',
+  '-select_streams',
+  'v:0',
+  '-count_frames',
+  '-show_entries',
+  'stream=nb_read_frames',
+  '-print_format',
+  'default=nokey=1:noprint_wrappers=1',
 ]

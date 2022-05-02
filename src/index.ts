@@ -1,38 +1,56 @@
 import fs from 'fs'
-import { Transcoder } from './ffmpeg'
+import watch from 'node-watch'
+import { Transcoder } from './ffmpeg/ffmpeg'
+import { API } from './api/express'
+import type { Queue } from './types'
 
-const getAllFiles = (dir: string) => {
+const SourcePath = process.env.SOURCE || '/source/'
+const DestPath = process.env.DEST || '/dest/'
+const Port = process.env.PORT || '3000'
+
+const transcoder = new Transcoder({ showLogs: true })
+
+const getAllFiles = (dir: string): Queue[] => {
   const files = fs.readdirSync(dir)
-  let filterFiles = files.filter(file => file.endsWith('.mp4'))
-  filterFiles = filterFiles.filter(file => !file.startsWith('._'))
+  const filterFiles = files.filter(
+    file => file.endsWith('.mp4') && !file.startsWith('._')
+  )
   return filterFiles.map(file => {
     return {
       name: file.split('.mp4')[0],
-      path: `/source/${file}`,
+      inputPath: `${dir}${file}`,
+      outputPath: `${DestPath}${file.split('.mp4')[0]}`,
     }
   })
 }
 
-const converter = async () => {
-  const dir = '/mnt/disks/CacheDrive/recordings'
-  const files = getAllFiles(dir)
-  for (const file of files) {
-    const outDir = `/dest/${file.name}`
-    const realPath = `/mnt/disks/SlowPhatty/VOD/${file.name}`
-    fs.mkdirSync(realPath, { recursive: true })
-    const t = new Transcoder(file.path, outDir, realPath, { showLogs: true })
-    try {
-      const hlsPath = await t.transcode()
-      console.log(`Transcoded ${file.name} to ${hlsPath}`)
-    } catch (e) {
-      console.log(`Failed to transcode ${file.name} ${e}`)
-    }
-    fs.renameSync(
-      `${dir}/${file.name}.mp4`,
-      `${dir}/converted/${file.name}.mp4`
-    )
-    console.log(`Successfully moved file ${file.name}.mp4`)
-  }
-}
+const watcher = watch(SourcePath, {
+  filter: f => /\.mp4$/.test(f) && !/^\._/.test(f),
+})
 
-converter()
+watcher.on('change', (evt, name) => {
+  if (evt == 'update') {
+    if (typeof name === 'string') {
+      const re = new RegExp(`${SourcePath.replace(/\W/g, '')}/(\\w+)\.mp4`)
+      const splitName = name.match(re)
+      if (splitName) {
+        const files: Queue = {
+          name: splitName[1],
+          inputPath: `${SourcePath}${splitName[1]}.mp4`,
+          outputPath: `${DestPath}${splitName[1]}`,
+        }
+        console.log(`Added ${files.name} to queue`)
+        transcoder.add(files)
+      }
+    }
+  }
+})
+
+watcher.on('ready', () => {
+  console.log('Auto HLS is ready')
+  const previousFiles = getAllFiles(SourcePath)
+  console.log(`Found ${previousFiles.length} files`)
+  transcoder.bulkAdd(previousFiles)
+  console.log(`Starting Express Server on port ${Port}`)
+  new API(transcoder, parseInt(Port))
+})
