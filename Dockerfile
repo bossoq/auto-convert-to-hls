@@ -17,6 +17,6 @@ RUN yarn
 
 COPY /src ./src
 
-EXPOSE 3000
+EXPOSE ${PORT}
 
 CMD ["yarn", "startservice"]
