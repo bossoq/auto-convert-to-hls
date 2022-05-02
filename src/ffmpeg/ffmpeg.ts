@@ -192,11 +192,11 @@ export class Transcoder {
         const r = renditions[i]
         commands = commands.concat([
           '-vf',
-          // `scale_npp=-1:${r.height}`,
-          `scale=-1:${r.height}`,
+          `scale_npp=-1:${r.height}`,
+          // `scale=-1:${r.height}`,
           '-c:v',
-          'h264_videotoolbox',
-          // 'h264_nvenc',
+          // 'h264_videotoolbox',
+          'h264_nvenc',
           '-preset',
           'medium',
           '-c:a',

@@ -47,10 +47,10 @@ export const DefaultRenditions = [
 
 export const TranscodeCommand = [
   '-y',
-  // '-hwaccel',
-  // 'cuvid',
-  // '-c:v',
-  // 'h264_cuvid',
+  '-hwaccel',
+  'cuvid',
+  '-c:v',
+  'h264_cuvid',
   '-fflags',
   '+discardcorrupt',
   '-analyzeduration',
