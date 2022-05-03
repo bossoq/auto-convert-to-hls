@@ -6,6 +6,7 @@ import {
   DefaultRenditions,
 } from './default-renditions'
 import fs from 'fs'
+import { server } from '../index'
 import type { Options, Queue } from '../types'
 
 export class Transcoder {
@@ -30,12 +31,15 @@ export class Transcoder {
 
   add(queue: Queue) {
     if (this.queue.find((q) => q.name === queue.name)) return
+    if (this.name === queue.name) return
     this.queue.push(queue)
+    this.socketSend()
     this.start()
   }
 
   bulkAdd(queues: Queue[]) {
     this.queue.push(...queues)
+    this.socketSend()
     this.start()
   }
 
@@ -63,12 +67,14 @@ export class Transcoder {
     if (this.queue.length === 0) return
     const queue = this.queue.shift()
     if (!queue) return
+    this.name = queue.name
     this.busy = true
+    this.socketSend()
     this.createHLS(queue)
   }
 
   private async createHLS(queue: Queue) {
-    this.name = queue.name
+    this.socketSend()
     if (this.options.showLogs) console.log(`Starting Job: ${this.name}`)
     const outputPath = await this.makeOutputDir(queue)
     if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
@@ -85,12 +91,14 @@ export class Transcoder {
     this.totalFramesCount = await this.getFramesCount(totalFramesCommands)
     if (this.options.showLogs)
       console.log(`Total Frames: ${this.totalFramesCount}`)
+    this.socketSend()
     const screenshot = await this.screenshot(screenshotCommands)
     if (this.options.showLogs) console.log(screenshot)
     const transcode = await this.transcode(transcodeCommands)
     if (this.options.showLogs) console.log(transcode)
     const movePath = this.moveFinished(queue)
     if (this.options.showLogs) console.log(`Move File: ${movePath}`)
+    this.socketSend()
     this.done()
   }
 
@@ -101,6 +109,7 @@ export class Transcoder {
     this.currentFrames = 0
     this.currentFPS = 0
     this.currentSpeed = 0
+    this.socketSend()
     this.start()
   }
 
@@ -171,6 +180,7 @@ export class Transcoder {
               2
             )} | Speed: ${this.currentSpeed.toFixed(2)}`
           )
+        this.socketSend()
       })
       child.stderr.on('data', (data) => {
         const logs: string = data.toString()
@@ -189,6 +199,7 @@ export class Transcoder {
               2
             )} | Speed: ${this.currentSpeed.toFixed(2)}`
           )
+        this.socketSend()
       })
       child.on('exit', (code) => {
         if (code === 0) {
@@ -292,5 +303,10 @@ ${r.height}.m3u8`
       fs.writeFileSync(m3u8Path, m3u8Playlist)
       resolve(m3u8Path)
     })
+  }
+
+  private socketSend() {
+    server.io.emit('status', this.getStatus())
+    server.io.emit('queue', this.getQueue())
   }
 }

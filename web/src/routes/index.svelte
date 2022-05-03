@@ -3,6 +3,7 @@
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
   import axios from 'axios'
+  import io from 'socket.io-client'
 
   let currentStatus = {
     busy: false,
@@ -34,18 +35,29 @@
     queue = response.data
   }
 
+  const socket = io('https://vodstatusio.picturo.us')
+
+  socket.on('status', (data) => {
+    currentStatus = data
+    if (currentStatus.progress !== 'NaN') {
+      progress.set(parseFloat(currentStatus.progress))
+    } else {
+      progress.set(0)
+    }
+  })
+
+  socket.on('queue', (data) => {
+    queue = data
+  })
+
   onMount(() => {
     getStatus()
     getQueue()
-    setInterval(() => {
-      getStatus()
-      getQueue()
-      if (currentStatus.progress !== 'NaN') {
-        progress.set(parseFloat(currentStatus.progress))
-      } else {
-        progress.set(0)
-      }
-    }, 1000)
+    if (currentStatus.progress !== 'NaN') {
+      progress.set(parseFloat(currentStatus.progress))
+    } else {
+      progress.set(0)
+    }
   })
 </script>
 
@@ -94,7 +106,7 @@
         <tbody>
           {#each queue.queue as job, id}
             <tr>
-              <td class="border dark:border-gray-100 border-gray-800">{id}</td>
+              <td class="border dark:border-gray-100 border-gray-800">{id + 1}</td>
               <td class="border dark:border-gray-100 border-gray-800">{job.name}</td>
             </tr>
           {/each}

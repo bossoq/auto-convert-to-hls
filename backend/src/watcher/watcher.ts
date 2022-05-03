@@ -1,29 +1,9 @@
 import fs from 'fs'
 import watch from 'node-watch'
 import type { Queue } from '../types'
-import type { Transcoder } from '../ffmpeg/ffmpeg'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
-
-export const checkFile = function (
-  queue: Queue,
-  previousSize: number,
-  transcoder: Transcoder
-) {
-  fs.stat(queue.inputPath, (err, fileInfo) => {
-    if (err === null) {
-      if (fileInfo.size === previousSize && fileInfo.size > 0) {
-        console.log(`Added ${queue.name} to queue`)
-        transcoder.add(queue)
-      } else {
-        checkFile(queue, fileInfo.size, transcoder)
-      }
-    } else {
-      console.log(`File not found ${err}`)
-    }
-  })
-}
 
 export const getAllFiles = (dir: string): Queue[] => {
   const files = fs.readdirSync(dir)

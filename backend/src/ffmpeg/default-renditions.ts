@@ -66,9 +66,9 @@ export const FrameCountCommand = [
   'error',
   '-select_streams',
   'v:0',
-  '-count_frames',
+  // '-count_frames',
   '-show_entries',
-  'stream=nb_read_frames',
+  'stream=nb_frames',
   '-print_format',
   'default=nokey=1:noprint_wrappers=1',
 ]

@@ -1,13 +1,13 @@
 import { Transcoder } from './ffmpeg/ffmpeg'
 import { API } from './api/express'
-import { checkFile, getAllFiles, watcher } from './watcher/watcher'
+import { getAllFiles, watcher } from './watcher/watcher'
 import type { Queue } from './types'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
 
-const lastAdded: Queue[] = []
+const timeoutArr = new Map<string, NodeJS.Timeout>()
 
 const transcoder = new Transcoder({ showLogs: false })
 
@@ -22,10 +22,8 @@ const watcherChange = watcher.on('change', (evt, name) => {
           inputPath: `${SourcePath}${splitName[1]}.mp4`,
           outputPath: `${DestPath}${splitName[1]}`,
         }
-        if (lastAdded.find((file) => file.name === files.name)) return
-        lastAdded.push(files)
         console.log(`Founded ${files.name}, checking for complete...`)
-        checkFile(files, 0, transcoder)
+        debouncer(files)
       }
     }
   }
@@ -38,9 +36,23 @@ watcher.on('ready', () => {
   transcoder.bulkAdd(previousFiles)
   console.log('Starting watcher')
   watcherChange
-  console.log(`Starting Express Server on port ${Port}`)
-  new API(transcoder, parseInt(Port))
-  setInterval(() => {
-    if (lastAdded.length > 100) lastAdded.slice(-100)
-  }, 7 * 24 * 60 * 60 * 1000)
 })
+
+const debouncer = (queue: Queue) => {
+  if (timeoutArr.has(queue.name)) {
+    console.log(`${queue.name} is already in queue`)
+    clearTimeout(timeoutArr.get(queue.name)!)
+    timeoutArr.delete(queue.name)
+  }
+  const timer = setTimeout(() => {
+    console.log(`${queue.name} is completely transferred`)
+    clearTimeout(timeoutArr.get(queue.name)!)
+    console.log(`Added ${queue.name} to queue`)
+    transcoder.add(queue)
+    timeoutArr.delete(queue.name)
+  }, 10 * 1000)
+  timeoutArr.set(queue.name, timer)
+}
+
+console.log(`Starting Express Server on port ${Port}`)
+export const server = new API(transcoder, parseInt(Port))
