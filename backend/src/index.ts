@@ -31,7 +31,7 @@ const watcher = watch(SourcePath, {
 watcher.on('change', (evt, name) => {
   if (evt == 'update') {
     if (typeof name === 'string') {
-      const re = new RegExp(`${SourcePath.replace(/\W/g, '')}/(\\w+)\.mp4`)
+      const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
       const splitName = name.match(re)
       if (splitName) {
         const files: Queue = {
