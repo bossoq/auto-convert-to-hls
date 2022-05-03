@@ -1,34 +1,17 @@
-import fs from 'fs'
-import watch from 'node-watch'
 import { Transcoder } from './ffmpeg/ffmpeg'
 import { API } from './api/express'
+import { checkFile, getAllFiles, watcher } from './watcher/watcher'
 import type { Queue } from './types'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
 
+const lastAdded: Queue[] = []
+
 const transcoder = new Transcoder({ showLogs: false })
 
-const getAllFiles = (dir: string): Queue[] => {
-  const files = fs.readdirSync(dir)
-  const filterFiles = files.filter(
-    (file) => file.endsWith('.mp4') && !file.startsWith('._')
-  )
-  return filterFiles.map((file) => {
-    return {
-      name: file.split('.mp4')[0],
-      inputPath: `${dir}${file}`,
-      outputPath: `${DestPath}${file.split('.mp4')[0]}`,
-    }
-  })
-}
-
-const watcher = watch(SourcePath, {
-  filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
-})
-
-watcher.on('change', (evt, name) => {
+const watcherChange = watcher.on('change', (evt, name) => {
   if (evt == 'update') {
     if (typeof name === 'string') {
       const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
@@ -39,8 +22,10 @@ watcher.on('change', (evt, name) => {
           inputPath: `${SourcePath}${splitName[1]}.mp4`,
           outputPath: `${DestPath}${splitName[1]}`,
         }
-        console.log(`Added ${files.name} to queue`)
-        transcoder.add(files)
+        if (lastAdded.find((file) => file.name === files.name)) return
+        lastAdded.push(files)
+        console.log(`Founded ${files.name}, checking for complete...`)
+        checkFile(files, 0, transcoder)
       }
     }
   }
@@ -51,6 +36,11 @@ watcher.on('ready', () => {
   const previousFiles = getAllFiles(SourcePath)
   console.log(`Found ${previousFiles.length} files`)
   transcoder.bulkAdd(previousFiles)
+  console.log('Starting watcher')
+  watcherChange
   console.log(`Starting Express Server on port ${Port}`)
   new API(transcoder, parseInt(Port))
+  setInterval(() => {
+    if (lastAdded.length > 100) lastAdded.slice(-100)
+  }, 7 * 24 * 60 * 60 * 1000)
 })
