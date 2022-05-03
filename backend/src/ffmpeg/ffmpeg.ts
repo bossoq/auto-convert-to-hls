@@ -29,6 +29,7 @@ export class Transcoder {
   }
 
   add(queue: Queue) {
+    if (this.queue.filter((q) => q.name === queue.name)) return
     this.queue.push(queue)
     this.start()
   }
