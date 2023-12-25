@@ -240,13 +240,42 @@ export class Transcoder {
       const renditions = DefaultRenditions
       for (let i = 0, len = renditions.length; i < len; i++) {
         const r = renditions[i]
+        // commands = commands.concat([
+        //   '-vf',
+        //   `scale_npp=-1:${r.height}`,
+        //   '-c:v',
+        //   'h264_nvenc',
+        //   '-preset',
+        //   'medium',
+        //   '-c:a',
+        //   'aac',
+        //   '-ar',
+        //   '48000',
+        //   '-sc_threshold',
+        //   '0',
+        //   '-g',
+        //   '90',
+        //   '-hls_time',
+        //   r.hlsTime,
+        //   '-hls_playlist_type',
+        //   'vod',
+        //   '-b:v',
+        //   r.bv,
+        //   '-maxrate',
+        //   r.maxrate,
+        //   '-bufsize',
+        //   r.bufsize,
+        //   '-b:a',
+        //   r.ba,
+        //   '-hls_segment_filename',
+        //   `${queue.outputPath}/${r.ts_title}_%03d.ts`,
+        //   `${queue.outputPath}/${r.height}.m3u8`,
+        // ])
         commands = commands.concat([
           '-vf',
-          `scale_npp=-1:${r.height}`,
-          // `scale=-1:${r.height}`,
+          `scale_qsv=-1:${r.height},format=qsv,hwupload=extra_hw_frames=64,vpp_qsv=framerate=30:deinterlace=2`,
           '-c:v',
-          'h264_nvenc',
-          // 'h264_videotoolbox',
+          'h264_qsv',
           '-preset',
           'medium',
           '-c:a',
@@ -296,7 +325,9 @@ export class Transcoder {
       for (let i = 0, len = renditions.length; i < len; i++) {
         const r = renditions[i]
         m3u8Playlist += `
-#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${r.height}
+#EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${
+          r.height
+        }
 ${r.height}.m3u8`
       }
       const m3u8Path = `${queue.outputPath}/index.m3u8`
