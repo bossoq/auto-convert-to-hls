@@ -4,6 +4,7 @@
   import { cubicOut } from 'svelte/easing'
   import axios from 'axios'
   import io from 'socket.io-client'
+  const socketUrl = process.env.SOCKET_URL || 'https://vodstatusio.picturo.us'
 
   let currentStatus = {
     busy: false,
@@ -35,7 +36,7 @@
     queue = response.data
   }
 
-  const socket = io('https://vodstatusio.picturo.us')
+  const socket = io(socketUrl)
 
   socket.on('status', (data) => {
     currentStatus = data
