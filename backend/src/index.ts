@@ -56,4 +56,4 @@ const debouncer = (queue: Queue) => {
 }
 
 console.log(`Starting Express Server on port ${Port}`)
-export const server = new API(transcoder, parseInt(Port))
+export const server = new API(transcoder, parseInt(Port), Host)
