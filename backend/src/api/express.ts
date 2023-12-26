@@ -10,16 +10,17 @@ export class API {
   private corsHost: string
   private transcoder: Transcoder
   io: Server
-  constructor(transcoder: Transcoder, port?: number, corsHost?: string) {
+  constructor(transcoder: Transcoder, corsHost: string, port?: number) {
     this.app = express()
     this.port = port || 3000
-    this.corsHost = corsHost || 'https://vodstatus.picturo.us'
+    this.corsHost = corsHost
     this.transcoder = transcoder
     this.init()
   }
 
   private init() {
     const server = http.createServer(this.app)
+    console.log(`Set CORS: ${this.corsHost}`)
     this.io = new Server(server, {
       cors: {
         origin: this.corsHost,

@@ -6,7 +6,7 @@ import type { Queue } from './types'
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
-const Cors = process.env.CORSHOST || 'https://vodstatus.picturo.us'
+const CorsHost = process.env.CORSHOST || 'https://vodstatus.picturo.us'
 
 const timeoutArr = new Map<string, NodeJS.Timeout>()
 
@@ -56,4 +56,4 @@ const debouncer = (queue: Queue) => {
 }
 
 console.log(`Starting Express Server on port ${Port}`)
-export const server = new API(transcoder, parseInt(Port), Cors)
+export const server = new API(transcoder, CorsHost, parseInt(Port))
