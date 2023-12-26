@@ -7,11 +7,13 @@ import type { Transcoder } from '../ffmpeg/ffmpeg'
 export class API {
   private app: express.Application
   private port: number
+  private host: string
   private transcoder: Transcoder
   io: Server
-  constructor(transcoder: Transcoder, port?: number) {
+  constructor(transcoder: Transcoder, port?: number, host?: string) {
     this.app = express()
     this.port = port || 3000
+    this.host = host || 'https://vodstatus.picturo.us'
     this.transcoder = transcoder
     this.init()
   }
@@ -20,7 +22,7 @@ export class API {
     const server = http.createServer(this.app)
     this.io = new Server(server, {
       cors: {
-        origin: 'https://vodstatus.picturo.us',
+        origin: this.host,
       },
     })
     this.app.use(cors())

@@ -13,6 +13,7 @@ services:
       - SOURCE
       - DEST
       - PORT
+      - HOST
     runtime: nvidia
     networks:
       br0:

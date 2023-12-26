@@ -6,6 +6,7 @@ import type { Queue } from './types'
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
+const Host = process.env.HOST || 'https://vodstatus.picturo.us'
 
 const timeoutArr = new Map<string, NodeJS.Timeout>()
 
