@@ -13,7 +13,7 @@ services:
       - SOURCE
       - DEST
       - PORT
-      - HOST
+      - CORSHOST
     runtime: nvidia
     networks:
       br0:
