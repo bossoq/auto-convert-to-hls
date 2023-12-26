@@ -2,9 +2,9 @@
   import { onMount } from 'svelte'
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
+  import { PUBLIC_SOCKET_URL } from '$env/static/public'
   import axios from 'axios'
   import io from 'socket.io-client'
-  const socketUrl = process.env.SOCKET_URL || 'https://vodstatusio.picturo.us'
 
   let currentStatus = {
     busy: false,
@@ -36,7 +36,7 @@
     queue = response.data
   }
 
-  const socket = io(socketUrl)
+  const socket = io(PUBLIC_SOCKET_URL)
 
   socket.on('status', (data) => {
     currentStatus = data
