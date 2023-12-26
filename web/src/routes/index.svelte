@@ -2,7 +2,7 @@
   import { onMount } from 'svelte'
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
-  import { PUBLIC_SOCKET_URL } from '$env/static/public'
+  // import { PUBLIC_SOCKET_URL } from '$env/static/public'
   import axios from 'axios'
   import io from 'socket.io-client'
 
@@ -36,7 +36,7 @@
     queue = response.data
   }
 
-  const socket = io(PUBLIC_SOCKET_URL)
+  const socket = io(import.meta.env.PUBLIC_SOCKET_URL)
 
   socket.on('status', (data) => {
     currentStatus = data
