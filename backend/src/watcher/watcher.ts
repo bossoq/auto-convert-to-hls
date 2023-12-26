@@ -1,5 +1,6 @@
 import fs from 'fs'
-import watch from 'node-watch'
+// import watch from 'node-watch'
+import { watch as chokidarWatch } from 'chokidar'
 import type { Queue } from '../types'
 
 const SourcePath = process.env.SOURCE || '/source/'
@@ -19,6 +20,11 @@ export const getAllFiles = (dir: string): Queue[] => {
   })
 }
 
-export const watcher = watch(SourcePath, {
-  filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
+export const watcher = chokidarWatch(SourcePath, {
+  ignored: /^\./,
+  persistent: true,
+  usePolling: true,
 })
+// export const watcher = watch(SourcePath, {
+//   filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
+// })

@@ -12,21 +12,34 @@ const timeoutArr = new Map<string, NodeJS.Timeout>()
 
 const transcoder = new Transcoder({ showLogs: false })
 
-const watcherChange = watcher.on('change', (evt, name) => {
-  if (evt == 'update') {
-    if (typeof name === 'string') {
-      const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
-      const splitName = name.match(re)
-      if (splitName) {
-        const files: Queue = {
-          name: splitName[1],
-          inputPath: `${SourcePath}${splitName[1]}.mp4`,
-          outputPath: `${DestPath}${splitName[1]}`,
-        }
-        console.log(`Founded ${files.name}, checking for complete...`)
-        debouncer(files)
-      }
+// const watcherChange = watcher.on('add', (evt, name) => {
+//   if (evt == 'update') {
+//     if (typeof name === 'string') {
+//       const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
+//       const splitName = name.match(re)
+//       if (splitName) {
+//         const files: Queue = {
+//           name: splitName[1],
+//           inputPath: `${SourcePath}${splitName[1]}.mp4`,
+//           outputPath: `${DestPath}${splitName[1]}`,
+//         }
+//         console.log(`Founded ${files.name}, checking for complete...`)
+//         debouncer(files)
+//       }
+//     }
+//   }
+// })
+const watcherChange = watcher.on('add', (path) => {
+  const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
+  const splitName = path.match(re)
+  if (splitName) {
+    const files: Queue = {
+      name: splitName[1],
+      inputPath: `${SourcePath}${splitName[1]}.mp4`,
+      outputPath: `${DestPath}${splitName[1]}`,
     }
+    console.log(`Founded ${files.name}, checking for complete...`)
+    debouncer(files)
   }
 })
 
