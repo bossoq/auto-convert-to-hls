@@ -24,6 +24,7 @@ export const watcher = chokidarWatch(SourcePath, {
   ignored: /^\./,
   persistent: true,
   usePolling: true,
+  depth: 0,
 })
 // export const watcher = watch(SourcePath, {
 //   filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
