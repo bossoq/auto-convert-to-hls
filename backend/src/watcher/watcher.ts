@@ -21,7 +21,14 @@ export const getAllFiles = (dir: string): Queue[] => {
 }
 
 export const watcher = chokidarWatch(SourcePath, {
-  ignored: /^\./,
+  ignored: (file: string) => {
+    const matcher = file.match(
+      new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
+    )
+    if (!matcher) return true
+    const fileName = matcher[1]
+    return fileName.startsWith('.')
+  },
   persistent: true,
   usePolling: true,
   depth: 0,
