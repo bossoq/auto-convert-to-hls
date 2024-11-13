@@ -33,6 +33,7 @@ const watcherChange = watcher.on('add', (path) => {
   const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
   const splitName = path.match(re)
   if (splitName) {
+    if (splitName[1].startsWith('.')) return
     const files: Queue = {
       name: splitName[1],
       inputPath: `${SourcePath}${splitName[1]}.mp4`,
