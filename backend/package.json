@@ -20,11 +20,17 @@
     "useTabs": false
   },
   "devDependencies": {
-    "@types/express": "^4.17.13"
+    "@types/express": "^4.17.13",
+    "prisma": "^5.22.0"
   },
   "dependencies": {
+    "@google-apps/meet": "^0.3.0",
+    "@google-cloud/pubsub": "^4.8.0",
+    "@prisma/client": "5.22.0",
     "chokidar": "^3.5.3",
     "express": "^4.17.3",
+    "google-auth-library": "^9.14.2",
+    "googleapis": "^144.0.0",
     "node-watch": "^0.7.3",
     "socket.io": "^4.5.0",
     "ts-node": "^10.7.0",

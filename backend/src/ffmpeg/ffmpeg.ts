@@ -7,6 +7,7 @@ import {
 } from './default-renditions'
 import fs from 'fs'
 import { server } from '../index'
+import { PrismaClient } from '@prisma/client'
 import type { Options, Queue } from '../types'
 
 export class Transcoder {
@@ -18,6 +19,7 @@ export class Transcoder {
   private currentFrames: number
   private currentFPS: number
   private currentSpeed: number
+  private prisma: PrismaClient
   constructor(options?: Options) {
     this.busy = false
     this.queue = []
@@ -27,6 +29,7 @@ export class Transcoder {
     this.currentFrames = 0
     this.currentFPS = 0
     this.currentSpeed = 0
+    this.prisma = new PrismaClient()
   }
 
   add(queue: Queue) {
@@ -98,6 +101,30 @@ export class Transcoder {
     if (this.options.showLogs) console.log(transcode)
     const movePath = this.moveFinished(queue)
     if (this.options.showLogs) console.log(`Move File: ${movePath}`)
+    if (queue.autoPublish) {
+      if (queue.meta) {
+        if (this.options.showLogs) console.log(`Auto Publish ${queue.name}`)
+        await this.prisma.videoProcess.update({
+          where: {
+            id: queue.meta.id,
+          },
+          data: {
+            processed: true,
+          },
+        })
+        await this.prisma.videoTable.create({
+          data: {
+            name: queue.meta.className,
+            baseUrl: `https://vod.supapanya.com/${queue.name}`,
+            type: 'vod',
+            allowAll: false,
+            allowList: queue.meta.participants,
+            fileType: 'HLS',
+          },
+        })
+        if (this.options.showLogs) console.log(`Auto Publish Done!`)
+      }
+    }
     this.socketSend()
     this.done()
   }

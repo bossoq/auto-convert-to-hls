@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model postTable {
+  id                       BigInt    @id @default(autoincrement())
+  user                     userTable @relation(fields: [authorId], references: [id], onDelete: SetDefault)
+  authorId                 BigInt    @default(1)
+  postDate                 DateTime  @default(now()) @db.Timestamp(6)
+  postTitle                String
+  postContent              Json
+  postExcerpt              String?
+  postStatus               String
+  postLink                 String
+  postPicture              String?
+  postType                 String
+  postModified             DateTime  @default(now()) @db.Timestamp(6)
+  userTable_postModifiedBy userTable @relation("postModifiedBy", fields: [modifiedBy], references: [id], onDelete: SetDefault)
+  modifiedBy               BigInt    @default(1)
+}
+
+model userTable {
+  id                       BigInt         @id(map: "userTable1_pkey") @default(autoincrement())
+  userLogin                String
+  userPassword             String
+  displayName              String
+  meta                     Json           @db.Json
+  registeredDate           DateTime       @default(now()) @db.Timestamp(6)
+  authorised               Boolean        @default(false)
+  posts                    postTable[]
+  postTable_postModifiedBy postTable[]    @relation("postModifiedBy")
+  videoProcess_teacher     videoProcess[]
+}
+
+model videoTable {
+  id        BigInt   @id(map: "videoTable1_pkey") @default(autoincrement())
+  name      String
+  baseUrl   String
+  type      String
+  allowAll  Boolean? @default(true)
+  allowList Json?
+  fileType  String   @default("HLS")
+}
+
+model videoProcess {
+  id           BigInt    @id @default(autoincrement())
+  createdAt    DateTime  @default(now()) @db.Timestamp(6)
+  spaceName    String
+  participants Json
+  subscribed   Boolean   @default(false)
+  downloaded   Boolean   @default(false)
+  processed    Boolean   @default(false)
+  teacherId    BigInt    @default(1)
+  teacher      userTable @relation(fields: [teacherId], references: [id], onDelete: SetDefault)
+  className    String
+}
