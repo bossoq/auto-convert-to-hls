@@ -39,7 +39,6 @@ const transcoder = new Transcoder({ showLogs: false })
 
 const getAllUnfinished = async () => {
   const prisma = new PrismaClient()
-  const files: Queue[] = []
   const undownloaded = await prisma.videoProcess.findMany({
     where: {
       OR: [
@@ -88,11 +87,11 @@ const getAllUnfinished = async () => {
           },
         }
         console.log(`Downloaded ${file.name}`)
-        files.push(file)
+        console.log(`Added ${file.name} to queue`)
+        transcoder.add(file)
       })
     }
   }
-  return files
 }
 
 const watcherChange = watcher.on('add', (path) => {
@@ -119,9 +118,7 @@ watcher.on('ready', () => {
   watcherChange
 })
 pubsub().then(async (sub) => {
-  const previousFiles = await getAllUnfinished()
-  console.log(`Found ${previousFiles.length} files`)
-  transcoder.bulkAdd(previousFiles)
+  await getAllUnfinished()
   console.log('Starting pubsub')
   const prisma = new PrismaClient()
   sub.on('message', async (message) => {
