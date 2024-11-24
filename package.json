@@ -6,7 +6,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "yarn backend-start & yarn web-start",
+    "start": "yarn prisma generate && yarn backend-start & yarn web-start",
     "dev": "yarn backend-dev & yarn web-dev",
     "backend-start": "yarn backend start",
     "web-start": "yarn web build && PORT=3000 node web/build/index.js",
