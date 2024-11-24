@@ -194,7 +194,7 @@ pubsub().then(async (sub) => {
         console.log(`Added ${files.name} to queue`)
         transcoder.add(files)
       })
-      // message.ack()
+      message.ack()
     }
     // message.ack()
   })
