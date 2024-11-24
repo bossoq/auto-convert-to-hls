@@ -122,6 +122,7 @@ pubsub().then(async (sub) => {
   const previousFiles = await getAllUnfinished()
   console.log(`Found ${previousFiles.length} files`)
   transcoder.bulkAdd(previousFiles)
+  console.log('Starting pubsub')
   const prisma = new PrismaClient()
   sub.on('message', async (message) => {
     if (
