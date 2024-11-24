@@ -4,6 +4,7 @@ WORKDIR /app
 
 COPY package.json yarn.lock ./
 COPY backend/package.json backend/tsconfig.json ./backend/
+COPY backend/prisma/ ./backend/prisma/
 COPY web/package.json web/tsconfig.json ./web/
 
 RUN yarn
