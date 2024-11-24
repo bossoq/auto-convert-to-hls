@@ -31,7 +31,7 @@ export const watcher = chokidarWatch(SourcePath, {
   },
   persistent: true,
   usePolling: true,
-  depth: 0,
+  depth: 1,
 })
 // export const watcher = watch(SourcePath, {
 //   filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
