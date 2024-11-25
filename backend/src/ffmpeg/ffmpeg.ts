@@ -4,6 +4,7 @@ import {
   ScreenshotCommand,
   TranscodeCommand,
   DefaultRenditions,
+  FPSCommand,
 } from './default-renditions'
 import fs from 'fs'
 import { server } from '../index'
@@ -87,11 +88,17 @@ export class Transcoder {
     const totalFramesCommands: string[] = await this.buildFrameCountCommands(
       queue
     )
+    const fpsCommands: string[] = await this.buildFPSCommands(queue)
     const screenshotCommands: string[] = await this.buildScreenshotCommands(
       queue
     )
     const transcodeCommands: string[] = await this.buildTranscodeCommands(queue)
+    const fps = await this.getFramesCount(fpsCommands)
+    if (this.options.showLogs) console.log(`FPS: ${fps}`)
     this.totalFramesCount = await this.getFramesCount(totalFramesCommands)
+    this.totalFramesCount = parseInt(
+      ((this.totalFramesCount * 30) / fps).toFixed(0)
+    )
     if (this.options.showLogs)
       console.log(`Total Frames: ${this.totalFramesCount}`)
     this.socketSend()
@@ -162,6 +169,25 @@ export class Transcoder {
       child.on('exit', (code) => {
         if (code === 0) {
           return resolve(framesCount)
+        }
+      })
+    })
+  }
+
+  private getFPS(commands: string[]): Promise<number> {
+    return new Promise((resolve, _reject) => {
+      let fps = 0
+      const child = spawn('ffprobe', commands)
+      child.stdout.on('data', (data) => {
+        const [decimal, divider] = data.toString().split('/')
+        fps = parseFloat(decimal) / parseFloat(divider)
+      })
+      child.stderr.on('data', (data) => {
+        if (this.options.showLogs) console.error(data.toString())
+      })
+      child.on('exit', (code) => {
+        if (code === 0) {
+          return resolve(fps)
         }
       })
     })
@@ -240,6 +266,14 @@ export class Transcoder {
   private buildFrameCountCommands(queue: Queue): Promise<string[]> {
     return new Promise((resolve, _reject) => {
       let commands = FrameCountCommand
+      commands = commands.concat([queue.inputPath])
+      resolve(commands)
+    })
+  }
+
+  private buildFPSCommands(queue: Queue): Promise<string[]> {
+    return new Promise((resolve, _reject) => {
+      let commands = FPSCommand
       commands = commands.concat([queue.inputPath])
       resolve(commands)
     })

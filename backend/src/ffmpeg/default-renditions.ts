@@ -95,3 +95,15 @@ export const FrameCountCommand = [
   '-print_format',
   'default=nokey=1:noprint_wrappers=1',
 ]
+
+export const FPSCommand = [
+  '-v',
+  'error',
+  '-select_streams',
+  'v:0',
+  // '-count_frames',
+  '-show_entries',
+  'stream=r_frame_rate',
+  '-print_format',
+  'default=nokey=1:noprint_wrappers=1',
+]
