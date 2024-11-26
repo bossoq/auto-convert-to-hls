@@ -93,7 +93,7 @@ export class Transcoder {
       queue
     )
     const transcodeCommands: string[] = await this.buildTranscodeCommands(queue)
-    const fps = await this.getFramesCount(fpsCommands)
+    const fps = await this.getFPS(fpsCommands)
     if (this.options.showLogs) console.log(`FPS: ${fps}`)
     this.totalFramesCount = await this.getFramesCount(totalFramesCommands)
     this.totalFramesCount = parseInt(
