@@ -1,3 +1,5 @@
+export const DefaultFPS = 30
+
 export const DefaultRenditions = [
   {
     width: 640,
@@ -45,35 +47,12 @@ export const DefaultRenditions = [
   },
 ]
 
-// export const TranscodeCommand = [
-//   '-y',
-//   '-hwaccel',
-//   'cuvid',
-//   '-c:v',
-//   'h264_cuvid',
-//   '-fflags',
-//   '+discardcorrupt',
-//   '-analyzeduration',
-//   '10M',
-//   '-probesize',
-//   '32M',
-// ]
 export const TranscodeCommand = [
   '-y',
-  '-init_hw_device',
-  'qsv=hw',
-  '-filter_hw_device',
-  'hw',
   '-hwaccel',
-  'qsv',
-  '-hwaccel_output_format',
-  'qsv',
-  '-threads',
-  '4',
-  '-reinit_filter',
-  '1',
+  'cuvid',
   '-c:v',
-  'h264_qsv',
+  'h264_cuvid',
   '-fflags',
   '+discardcorrupt',
   '-analyzeduration',
@@ -81,6 +60,29 @@ export const TranscodeCommand = [
   '-probesize',
   '32M',
 ]
+// export const TranscodeCommand = [
+//   '-y',
+//   '-init_hw_device',
+//   'qsv=hw',
+//   '-filter_hw_device',
+//   'hw',
+//   '-hwaccel',
+//   'qsv',
+//   '-hwaccel_output_format',
+//   'qsv',
+//   '-threads',
+//   '4',
+//   '-reinit_filter',
+//   '1',
+//   '-c:v',
+//   'h264_qsv',
+//   '-fflags',
+//   '+discardcorrupt',
+//   '-analyzeduration',
+//   '10M',
+//   '-probesize',
+//   '32M',
+// ]
 
 export const ScreenshotCommand = ['-y', '-ss', '00:00:10']
 

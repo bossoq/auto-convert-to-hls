@@ -8,7 +8,7 @@
   "author": "Kittipos Wajakajornrit",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node .",
+    "start": "node -r ts-node/register .",
     "dev": "ts-node-dev ."
   },
   "prettier": {

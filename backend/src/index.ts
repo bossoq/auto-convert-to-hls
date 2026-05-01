@@ -17,7 +17,7 @@ const CorsHost = process.env.CORSHOST || 'https://vodstatus.picturo.us'
 
 const timeoutArr = new Map<string, NodeJS.Timeout>()
 
-const transcoder = new Transcoder({ showLogs: false })
+const transcoder = new Transcoder({ showLogs: true })
 
 // const watcherChange = watcher.on('add', (evt, name) => {
 //   if (evt == 'update') {
