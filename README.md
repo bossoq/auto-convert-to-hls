@@ -6,7 +6,7 @@ Automatically converts MP4 recordings to multi-rendition HLS for video-on-demand
 
 ## Requirements
 
-- Node.js ≥ 10 with Yarn
+- Node.js ≥ 24 with Yarn
 - PostgreSQL database
 - NVIDIA GPU with cuvid support (used for hardware-accelerated transcoding)
 - ffmpeg built with `h264_cuvid` support
@@ -88,7 +88,7 @@ For Google Meet recordings with `autoPublish` enabled, the job also marks the `v
 | `GET /status` | Current job name, frame progress, FPS, speed |
 | `GET /queue` | Pending queue length and job list |
 
-Socket.io emits `status` and `queue` events on every state change, used by the web UI for live updates.
+Socket.io emits `status` and `queue` events on every state change, used by the web UI for live updates. The client connects using WebSocket transport only (no XHR long-polling), which avoids compatibility issues with reverse proxies.
 
 ## Environment Variables
 
@@ -97,7 +97,7 @@ Socket.io emits `status` and `queue` events on every state change, used by the w
 | `SOURCE` | `/source/` | Directory to watch for incoming MP4 files |
 | `DEST` | `/dest/` | Output directory for HLS segments and playlists |
 | `PORT` | `4000` | Backend API / Socket.io port |
-| `CORSHOST` | `https://vodstatus.picturo.us` | Allowed CORS origin for the backend |
+| `CORSHOST` | `https://vodstatus.picturo.us` | Allowed CORS origin(s) for the backend — accepts a single origin or a comma-separated list |
 | `DATABASE_URL` | — | Prisma primary PostgreSQL connection string |
 | `DIRECT_URL` | — | Prisma direct PostgreSQL connection string |
 | `PROJECT_ID` | — | Google Cloud project ID |
