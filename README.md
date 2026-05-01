@@ -1,5 +1,7 @@
 # auto-convert-to-hls
 
+![Tests](https://github.com/bossoq/auto-convert-to-hls/actions/workflows/test.yml/badge.svg)
+
 Automatically converts MP4 recordings to multi-rendition HLS for video-on-demand. Supports two ingestion sources: a watched filesystem directory and Google Meet recordings via Google Pub/Sub.
 
 ## Requirements
@@ -14,9 +16,18 @@ Automatically converts MP4 recordings to multi-rendition HLS for video-on-demand
 ```bash
 yarn
 yarn backend prisma generate
+yarn backend prisma migrate dev
 ```
 
 Copy and configure environment variables (see [Environment Variables](#environment-variables) below).
+
+## Testing
+
+```bash
+yarn test
+```
+
+No GPU, database, or ffmpeg required — all external dependencies are mocked.
 
 ## Running
 
@@ -96,6 +107,7 @@ Socket.io emits `status` and `queue` events on every state change, used by the w
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject (impersonated user) |
 | `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL prepended to job name for auto-published VOD entries |
+| `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server URL for the web UI (set in `web/.env.public`) |
 
 ## License
 

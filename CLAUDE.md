@@ -60,15 +60,15 @@ The system automatically converts MP4 recordings to multi-rendition HLS for vide
 3. Spawns three concurrent worker threads: `fpscheck-worker.ts` + `framecount-worker.ts` (for progress tracking), `screenshot-worker.ts` (cover image at 00:00:10), and `transcode-worker.ts` (actual encoding)
 4. Transcodes to 4 renditions (360p/480p/720p/1080p) using NVIDIA cuvid hardware acceleration (`h264_cuvid`)
 5. Moves the source file to a `converted/` subdirectory
-6. If `autoPublish=true`, marks `videoProcess.processed=true` and creates a `videoTable` record in Postgres (hardcoded base URL: `https://vod.supapanya.com/`)
+6. If `autoPublish=true`, marks `videoProcess.processed=true` and creates a `videoTable` record in Postgres (base URL from `VOD_BASE_URL` env var)
 
 After each transcode step, progress is broadcast to all connected Socket.io clients.
 
-**API** (`api/express.ts`): Express server with Socket.io. Two REST endpoints: `GET /status` (current job progress) and `GET /queue` (pending jobs). Socket.io emits `status` and `queue` events on every state change.
+**API** (`api/express.ts`): Express server with Socket.io. Two REST endpoints: `GET /status` (current job progress) and `GET /queue` (pending jobs). Socket.io emits `status` and `queue` events on every state change, and pushes current state to each client immediately on `connection`.
 
 ### Web (`web/src/`)
 
-SvelteKit frontend. Connects to the backend via Socket.io and axios to display live transcoding status and queue. Built with Tailwind CSS.
+SvelteKit frontend. Connects to the backend via Socket.io (URL from `PUBLIC_SOCKET_URL` env var, defaults to same origin) to display live transcoding status and queue. Built with Tailwind CSS.
 
 ### Database (Prisma + PostgreSQL)
 
@@ -94,15 +94,20 @@ Key models:
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject |
 | `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL for auto-published VOD entries |
+| `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server URL consumed by the web UI (`web/.env.public`) |
 
 ### Docker & CI
 
-The base image is `ghcr.io/bossoq/ffmpeg-node-16:2.0` (includes ffmpeg with QSV support). `docker-compose.yaml` mounts host paths and passes through NVIDIA runtime env vars (legacy; current code uses QSV not CUDA).
+`docker-compose.yaml` mounts host paths and uses `runtime: nvidia`, passing `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES` to the container.
 
-GitHub Actions (`.github/workflows/docker.yml`) builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls`:
-- Every push → tagged with short commit SHA (7 chars)
-- PR labeled `release` → tagged with version from root `package.json`
+Two GitHub Actions workflows:
+- `.github/workflows/docker.yml` — builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with short SHA and `latest`
+- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 37 tests) on every push and PR to `main`
+
+### Testing
+
+Tests live in `backend/src/__tests__/`. All tests mock Worker threads, PrismaClient, and fs — no GPU, database, or ffmpeg required to run them.
 
 ### Hardware Dependency
 
-The transcoder uses NVIDIA cuvid via `-hwaccel cuvid` and `h264_cuvid` (see `default-renditions.ts`). The host must have an NVIDIA GPU. Commented-out code in `default-renditions.ts` shows a previous Intel QSV (`h264_qsv`) implementation. `docker-compose.yaml` still uses `runtime: nvidia` and passes `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES`.
+The transcoder requires an NVIDIA GPU. It decodes with `-hwaccel cuvid` / `h264_cuvid` and encodes with `h264_nvenc` (see `default-renditions.ts` and `transcode-worker.ts`).
