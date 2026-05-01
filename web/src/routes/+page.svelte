@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount } from 'svelte'
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
   import type { Socket } from 'socket.io-client'
@@ -27,30 +27,39 @@
   let socket: Socket | undefined
 
   onMount(() => {
-    import('socket.io-client').then(({ io }) => {
-      socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
-        transports: ['websocket']
+    let cancelled = false
+
+    import('socket.io-client')
+      .then(({ io }) => {
+        if (cancelled) return
+
+        socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
+          transports: ['websocket']
+        })
+
+        socket.on('status', (data) => {
+          currentStatus = data
+          progress.set(
+            currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
+          )
+        })
+
+        socket.on('queue', (data) => {
+          queue = data
+        })
+
+        socket.on('connect_error', (err) => {
+          console.error('Socket connection error:', err.message)
+        })
+      })
+      .catch((err) => {
+        console.error('Failed to load socket.io-client:', err)
       })
 
-      socket.on('status', (data) => {
-        currentStatus = data
-        progress.set(
-          currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
-        )
-      })
-
-      socket.on('queue', (data) => {
-        queue = data
-      })
-
-      socket.on('connect_error', (err) => {
-        console.error('Socket connection error:', err.message)
-      })
-    })
-  })
-
-  onDestroy(() => {
-    socket?.disconnect()
+    return () => {
+      cancelled = true
+      socket?.disconnect()
+    }
   })
 </script>
 
