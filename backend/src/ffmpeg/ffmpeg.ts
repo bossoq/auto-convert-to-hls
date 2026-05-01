@@ -1,16 +1,14 @@
 import { Worker } from 'worker_threads'
-import {
-  // FrameCountCommand,
-  // ScreenshotCommand,
-  // TranscodeCommand,
-  DefaultRenditions,
-  // FPSCommand,
-  DefaultFPS,
-} from './default-renditions'
+import { DefaultRenditions, DefaultFPS } from './default-renditions'
 import fs from 'fs'
-import { server } from '../index'
 import { PrismaClient } from '@prisma/client'
 import type { Options, Queue } from '../types'
+
+const VodBaseUrl = process.env.VOD_BASE_URL || 'https://vod.supapanya.com'
+
+interface SocketEmitter {
+  emit(event: string, data: unknown): boolean | void
+}
 
 export class Transcoder {
   private busy: boolean
@@ -22,6 +20,8 @@ export class Transcoder {
   private currentFPS: number
   private currentSpeed: number
   private prisma: PrismaClient
+  private io: SocketEmitter | null
+
   constructor(options?: Options) {
     this.busy = false
     this.queue = []
@@ -32,6 +32,11 @@ export class Transcoder {
     this.currentFPS = 0
     this.currentSpeed = 0
     this.prisma = new PrismaClient()
+    this.io = null
+  }
+
+  setIO(io: SocketEmitter) {
+    this.io = io
   }
 
   add(queue: Queue) {
@@ -84,22 +89,9 @@ export class Transcoder {
     const outputPath = await this.makeOutputDir(queue)
     if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
     const masterPlaylist = await this.writePlaylist(queue)
-    if (this.options.showLogs)
-      console.log(`Create Master Playlist: ${masterPlaylist}`)
-    // const totalFramesCommands: string[] = await this.buildFrameCountCommands(
-    //   queue
-    // )
-    // const fpsCommands: string[] = await this.buildFPSCommands(queue)
-    // const screenshotCommands: string[] = await this.buildScreenshotCommands(
-    //   queue
-    // )
-    // const transcodeCommands: string[] = await this.buildTranscodeCommands(queue)
-    // const fps = await this.getFPS(fpsCommands)
-    // this.totalFramesCount = await this.getFramesCount(totalFramesCommands)
+    if (this.options.showLogs) console.log(`Create Master Playlist: ${masterPlaylist}`)
     this.getFramesCount(queue)
-    // const screenshot = await this.screenshot(screenshotCommands)
     this.screenshot(queue)
-    // const transcode = await this.transcode(transcodeCommands)
     this.transcode(queue)
   }
 
@@ -147,7 +139,7 @@ export class Transcoder {
       })
       framecountWorker.on('exit', (code) => {
         if (code !== 0)
-          console.error(new Error(`Worker stopped with exit code ${code}`))
+          console.error(new Error(`framecount-worker stopped with exit code ${code}`))
       })
     })
     fpsWorker.on('error', (err) => {
@@ -155,7 +147,7 @@ export class Transcoder {
     })
     fpsWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(new Error(`Worker stopped with exit code ${code}`))
+        console.error(new Error(`fpscheck-worker stopped with exit code ${code}`))
     })
   }
 
@@ -172,7 +164,7 @@ export class Transcoder {
     })
     screenshotWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(new Error(`Worker stopped with exit code ${code}`))
+        console.error(new Error(`screenshot-worker stopped with exit code ${code}`))
     })
   }
 
@@ -180,6 +172,7 @@ export class Transcoder {
     const transcodeWorker = new Worker('./src/ffmpeg/transcode-worker.ts', {
       workerData: queue,
     })
+    let doneReceived = false
     transcodeWorker.on('message', (msg: any) => {
       if (msg.progress) {
         this.currentFrames = msg.progress.frames
@@ -199,6 +192,7 @@ export class Transcoder {
         this.socketSend()
       }
       if (msg.done) {
+        doneReceived = true
         if (this.options.showLogs) console.log('Transcode worker done')
         this.moveFinished(queue)
         this.autoPublish(queue).then(() => {
@@ -210,115 +204,12 @@ export class Transcoder {
       console.error(`Cannot transcode: ${err}`)
     })
     transcodeWorker.on('exit', (code) => {
-      if (code !== 0)
-        console.error(new Error(`Worker stopped with exit code ${code}`))
+      if (code !== 0) {
+        console.error(new Error(`transcode-worker stopped with exit code ${code}`))
+        if (!doneReceived) this.done()
+      }
     })
   }
-
-  // private buildFrameCountCommands(queue: Queue): Promise<string[]> {
-  //   return new Promise((resolve, _reject) => {
-  //     let commands = FrameCountCommand
-  //     commands = commands.concat([queue.inputPath])
-  //     resolve(commands)
-  //   })
-  // }
-
-  // private buildFPSCommands(queue: Queue): Promise<string[]> {
-  //   return new Promise((resolve, _reject) => {
-  //     let commands = FPSCommand
-  //     commands = commands.concat([queue.inputPath])
-  //     resolve(commands)
-  //   })
-  // }
-
-  // private buildScreenshotCommands(queue: Queue): Promise<string[]> {
-  //   return new Promise((resolve, _reject) => {
-  //     let commands = ScreenshotCommand
-  //     commands = commands.concat(['-i', queue.inputPath])
-  //     commands = commands.concat([
-  //       '-frames:v',
-  //       '1',
-  //       '-q:v',
-  //       '2',
-  //       `${queue.outputPath}/cover.jpg`,
-  //     ])
-  //     resolve(commands)
-  //   })
-  // }
-
-  // private buildTranscodeCommands(queue: Queue): Promise<string[]> {
-  //   return new Promise((resolve, _reject) => {
-  //     let commands = TranscodeCommand
-  //     commands = commands.concat(['-i', queue.inputPath])
-  //     const renditions = DefaultRenditions
-  //     for (let i = 0, len = renditions.length; i < len; i++) {
-  //       const r = renditions[i]
-  //       commands = commands.concat([
-  //         '-vf',
-  //         `scale_npp=-1:${r.height}`,
-  //         '-c:v',
-  //         'h264_nvenc',
-  //         '-preset',
-  //         'medium',
-  //         '-c:a',
-  //         'aac',
-  //         '-ar',
-  //         '48000',
-  //         '-sc_threshold',
-  //         '0',
-  //         '-g',
-  //         '90',
-  //         '-hls_time',
-  //         r.hlsTime,
-  //         '-hls_playlist_type',
-  //         'vod',
-  //         '-b:v',
-  //         r.bv,
-  //         '-maxrate',
-  //         r.maxrate,
-  //         '-bufsize',
-  //         r.bufsize,
-  //         '-b:a',
-  //         r.ba,
-  //         '-hls_segment_filename',
-  //         `${queue.outputPath}/${r.ts_title}_%03d.ts`,
-  //         `${queue.outputPath}/${r.height}.m3u8`,
-  //       ])
-  //       // commands = commands.concat([
-  //       //   '-vf',
-  //       //   `scale_qsv=-1:${r.height},format=qsv,hwupload=extra_hw_frames=64,vpp_qsv=framerate=30:deinterlace=2`,
-  //       //   '-c:v',
-  //       //   'h264_qsv',
-  //       //   '-preset',
-  //       //   'medium',
-  //       //   '-c:a',
-  //       //   'aac',
-  //       //   '-ar',
-  //       //   '48000',
-  //       //   '-sc_threshold',
-  //       //   '0',
-  //       //   '-g',
-  //       //   '90',
-  //       //   '-hls_time',
-  //       //   r.hlsTime,
-  //       //   '-hls_playlist_type',
-  //       //   'vod',
-  //       //   '-b:v',
-  //       //   r.bv,
-  //       //   '-maxrate',
-  //       //   r.maxrate,
-  //       //   '-bufsize',
-  //       //   r.bufsize,
-  //       //   '-b:a',
-  //       //   r.ba,
-  //       //   '-hls_segment_filename',
-  //       //   `${queue.outputPath}/${r.ts_title}_%03d.ts`,
-  //       //   `${queue.outputPath}/${r.height}.m3u8`,
-  //       // ])
-  //     }
-  //     resolve(commands)
-  //   })
-  // }
 
   private makeOutputDir(queue: Queue): Promise<string> {
     return new Promise(async (resolve, _reject) => {
@@ -364,7 +255,7 @@ ${r.height}.m3u8`
         await this.prisma.videoTable.create({
           data: {
             name: queue.meta.className,
-            baseUrl: `https://vod.supapanya.com/${queue.name}`,
+            baseUrl: `${VodBaseUrl}/${queue.name}`,
             type: 'vod',
             allowAll: false,
             allowList: queue.meta.participants,
@@ -378,7 +269,7 @@ ${r.height}.m3u8`
   }
 
   private socketSend() {
-    server.io.emit('status', this.getStatus())
-    server.io.emit('queue', this.getQueue())
+    this.io?.emit('status', this.getStatus())
+    this.io?.emit('queue', this.getQueue())
   }
 }

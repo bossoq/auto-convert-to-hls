@@ -1,22 +1,33 @@
 # auto-convert-to-hls
 
+![Tests](https://github.com/bossoq/auto-convert-to-hls/actions/workflows/test.yml/badge.svg)
+
 Automatically converts MP4 recordings to multi-rendition HLS for video-on-demand. Supports two ingestion sources: a watched filesystem directory and Google Meet recordings via Google Pub/Sub.
 
 ## Requirements
 
 - Node.js ≥ 10 with Yarn
 - PostgreSQL database
-- Intel GPU with Quick Sync Video (QSV) support (used for hardware-accelerated transcoding)
-- ffmpeg built with QSV support
+- NVIDIA GPU with cuvid support (used for hardware-accelerated transcoding)
+- ffmpeg built with `h264_cuvid` support
 
 ## Setup
 
 ```bash
 yarn
 yarn backend prisma generate
+yarn backend prisma migrate dev
 ```
 
 Copy and configure environment variables (see [Environment Variables](#environment-variables) below).
+
+## Testing
+
+```bash
+yarn test
+```
+
+No GPU, database, or ffmpeg required — all external dependencies are mocked.
 
 ## Running
 
@@ -38,11 +49,9 @@ The web UI is served on port `3000`. The backend API and Socket.io run on `PORT`
 docker compose up
 ```
 
-The Docker image is based on `ghcr.io/bossoq/ffmpeg-node-16:2.0` which includes ffmpeg with QSV support. Mount your source and destination directories as volumes.
+Mount your source and destination directories as volumes. The container uses the `nvidia` runtime — ensure the NVIDIA Container Toolkit is installed on the host.
 
-Pre-built images are published to `ghcr.io/bossoq/auto-convert-to-hls`:
-- Every commit is tagged with a short SHA
-- Releases are tagged with the version from `package.json` (triggered by opening a PR with the `release` label)
+Pre-built images are published to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with both a short commit SHA and `latest`.
 
 ## How It Works
 
@@ -59,7 +68,7 @@ Jobs are processed one at a time. For each MP4:
 1. Output directory created under `DEST`
 2. HLS master playlist (`index.m3u8`) written
 3. Thumbnail captured at 00:00:10 as `cover.jpg`
-4. Transcoded to four renditions using Intel QSV (`h264_qsv`):
+4. Transcoded to four renditions using NVIDIA cuvid (`h264_cuvid`):
 
    | Resolution | Video bitrate | Audio bitrate |
    |---|---|---|
@@ -97,6 +106,8 @@ Socket.io emits `status` and `queue` events on every state change, used by the w
 | `CLIENT_EMAIL` | — | Service account email |
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject (impersonated user) |
+| `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL prepended to job name for auto-published VOD entries |
+| `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server URL for the web UI (set in `web/.env.public`) |
 
 ## License
 

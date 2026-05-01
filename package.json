@@ -13,7 +13,15 @@
     "backend-dev": "yarn backend dev",
     "web-dev": "yarn web dev",
     "backend": "yarn workspace backend",
-    "web": "yarn workspace web"
+    "web": "yarn workspace web",
+    "test": "yarn backend test",
+    "test:watch": "yarn backend test:watch"
   },
-  "workspaces": ["backend", "web"]
+  "workspaces": [
+    "backend",
+    "web"
+  ],
+  "dependencies": {
+    "vitest": "^2.0.0"
+  }
 }

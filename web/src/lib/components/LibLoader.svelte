@@ -12,7 +12,7 @@
     script.addEventListener('load', () => {
       dispatch('load')
     })
-    script.addEventListener('error', (event) => {
+    script.addEventListener('error', () => {
       dispatch('error')
     })
   })

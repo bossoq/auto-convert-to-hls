@@ -2,7 +2,7 @@ import { JWT } from 'google-auth-library'
 import { PubSub, type Subscription } from '@google-cloud/pubsub'
 import { ConferenceRecordsServiceClient } from '@google-apps/meet'
 import { google } from 'googleapis'
-import { writeFile } from 'node:fs'
+import { writeFile } from 'node:fs/promises'
 import type { videoProcess } from '@prisma/client'
 
 const SourcePath = process.env.SOURCE || '/source/'
@@ -90,11 +90,7 @@ export const getDriveFile = async (
     const fullPath = `${SourcePath}google/${fileName}`
     if (file.status === 200) {
       const data = file.data as unknown as Blob
-      writeFile(fullPath, Buffer.from(await data.arrayBuffer()), (err) => {
-        if (err) {
-          throw new Error('Failed to write file')
-        }
-      })
+      await writeFile(fullPath, Buffer.from(await data.arrayBuffer()))
       return fileName
     } else {
       throw new Error('Failed to get file')
