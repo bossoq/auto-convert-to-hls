@@ -12,7 +12,7 @@ jobs:
   # that have the `release` label applied before merge.
   # The previous `/release` marker in the PR body is no longer used.
   release:
-    if: github.event_name == 'pull_request' && github.event.label.name == 'release'
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'release')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -50,7 +50,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/bossoq/line-bot-ai
+          images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=${{ steps.version.outputs.version }}
             type=raw,value=latest
