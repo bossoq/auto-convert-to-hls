@@ -10,19 +10,19 @@ datasource db {
 
 model postTable {
   id                       BigInt    @id @default(autoincrement())
-  user                     userTable @relation(fields: [authorId], references: [id], onDelete: SetDefault)
   authorId                 BigInt    @default(1)
   postDate                 DateTime  @default(now()) @db.Timestamp(6)
   postTitle                String
-  postContent              Json
   postExcerpt              String?
   postStatus               String
+  postModified             DateTime  @default(now()) @db.Timestamp(6)
   postLink                 String
   postPicture              String?
   postType                 String
-  postModified             DateTime  @default(now()) @db.Timestamp(6)
-  userTable_postModifiedBy userTable @relation("postModifiedBy", fields: [modifiedBy], references: [id], onDelete: SetDefault)
+  postContent              Json
   modifiedBy               BigInt    @default(1)
+  user                     userTable @relation(fields: [authorId], references: [id], onDelete: SetDefault)
+  userTable_postModifiedBy userTable @relation("postModifiedBy", fields: [modifiedBy], references: [id], onDelete: SetDefault)
 }
 
 model userTable {
@@ -32,34 +32,43 @@ model userTable {
   displayName              String
   meta                     Json           @db.Json
   registeredDate           DateTime       @default(now()) @db.Timestamp(6)
-  authorised               Boolean        @default(false)
+  authorised               Boolean?       @default(false)
   posts                    postTable[]
   postTable_postModifiedBy postTable[]    @relation("postModifiedBy")
+  videoAccess              videoAccess[]
   videoProcess_teacher     videoProcess[]
 }
 
 model videoTable {
-  id        BigInt   @id(map: "videoTable1_pkey") @default(autoincrement())
-  name      String
-  baseUrl   String
-  type      String
-  allowAll  Boolean? @default(true)
-  allowList Json?
-  fileType  String   @default("HLS")
+  id          BigInt        @id(map: "videoTable1_pkey") @default(autoincrement())
+  name        String
+  baseUrl     String
+  type        String
+  allowAll    Boolean?      @default(true)
+  fileType    String        @default("HLS")
+  videoAccess videoAccess[]
 }
 
 model videoProcess {
   id           BigInt    @id @default(autoincrement())
-  createdAt    DateTime  @default(now()) @db.Timestamp(6)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
   spaceName    String
-  participants Json
+  participants Json      @default("[]")
   subscribed   Boolean   @default(false)
   downloaded   Boolean   @default(false)
   processed    Boolean   @default(false)
   teacherId    BigInt    @default(1)
-  teacher      userTable @relation(fields: [teacherId], references: [id], onDelete: SetDefault)
-  className    String
+  className    String    @default("ห้องเรียน")
+  teacher      userTable @relation(fields: [teacherId], references: [id], onDelete: SetDefault, map: "videoProcess_teacher_fkey")
+}
 
-  @@index([spaceName])
-  @@index([downloaded, processed])
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model videoAccess {
+  id         BigInt     @id @default(autoincrement())
+  videoId    BigInt
+  userId     BigInt
+  userTable  userTable  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoTable videoTable @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, userId])
 }
