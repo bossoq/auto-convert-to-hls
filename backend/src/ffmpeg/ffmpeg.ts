@@ -258,8 +258,12 @@ ${r.height}.m3u8`
             baseUrl: `${VodBaseUrl}/${queue.name}`,
             type: 'vod',
             allowAll: false,
-            allowList: queue.meta.participants,
             fileType: 'HLS',
+            videoAccess: {
+              create: queue.meta.participants.map((userId) => ({
+                userId: BigInt(userId),
+              })),
+            },
           },
         })
         if (this.options.showLogs) console.log(`Auto Publish Done!`)
