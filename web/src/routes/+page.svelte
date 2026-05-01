@@ -24,7 +24,9 @@
     easing: cubicOut
   })
 
-  const socket = io(import.meta.env.PUBLIC_SOCKET_URL || '')
+  const socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
+    transports: ['websocket'],
+  })
 
   socket.on('status', (data) => {
     currentStatus = data
