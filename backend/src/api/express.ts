@@ -4,29 +4,34 @@ import cors from 'cors'
 import { Server } from 'socket.io'
 import type { Transcoder } from '../ffmpeg/ffmpeg'
 
+export function parseCorsOrigins(corsHost: string): string | string[] {
+  const origins = corsHost.split(',').map((s) => s.trim()).filter(Boolean)
+  return origins.length === 1 ? origins[0] : origins
+}
+
 export class API {
   private app: express.Application
   private port: number
-  private corsHost: string
+  private corsOrigins: string | string[]
   private transcoder: Transcoder
   io: Server
   constructor(transcoder: Transcoder, corsHost: string, port?: number) {
     this.app = express()
     this.port = port || 3000
-    this.corsHost = corsHost
+    this.corsOrigins = parseCorsOrigins(corsHost)
     this.transcoder = transcoder
     this.init()
   }
 
   private init() {
     const server = http.createServer(this.app)
-    console.log(`Set CORS: ${this.corsHost}`)
+    console.log(`Set CORS: ${this.corsOrigins}`)
     this.io = new Server(server, {
       cors: {
-        origin: this.corsHost,
+        origin: this.corsOrigins,
       },
     })
-    this.app.use(cors({ origin: this.corsHost }))
+    this.app.use(cors({ origin: this.corsOrigins }))
     this.app.use(express.json())
 
     this.app.get('/status', (_req, res) => {
