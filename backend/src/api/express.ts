@@ -4,6 +4,11 @@ import cors from 'cors'
 import { Server } from 'socket.io'
 import type { Transcoder } from '../ffmpeg/ffmpeg'
 
+export function parseCorsOrigins(corsHost: string): string | string[] {
+  const origins = corsHost.split(',').map((s) => s.trim()).filter(Boolean)
+  return origins.length === 1 ? origins[0] : origins
+}
+
 export class API {
   private app: express.Application
   private port: number
@@ -13,13 +18,7 @@ export class API {
   constructor(transcoder: Transcoder, corsHost: string, port?: number) {
     this.app = express()
     this.port = port || 3000
-    const normalizedCorsHost = corsHost.trim()
-    this.corsOrigins = normalizedCorsHost.includes(',')
-      ? normalizedCorsHost
-          .split(',')
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
-      : normalizedCorsHost
+    this.corsOrigins = parseCorsOrigins(corsHost)
     this.transcoder = transcoder
     this.init()
   }
