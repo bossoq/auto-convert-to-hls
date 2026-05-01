@@ -2,7 +2,6 @@
   import { onMount } from 'svelte'
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
-  import io from 'socket.io-client'
 
   let currentStatus = {
     busy: false,
@@ -24,29 +23,30 @@
     easing: cubicOut
   })
 
-  const socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
-    transports: ['websocket']
-  })
+  onMount(async () => {
+    const { default: io } = await import('socket.io-client')
+    const socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
+      transports: ['websocket']
+    })
 
-  socket.on('status', (data) => {
-    currentStatus = data
-    progress.set(
-      currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
-    )
-  })
+    socket.on('status', (data) => {
+      currentStatus = data
+      progress.set(
+        currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
+      )
+    })
 
-  socket.on('queue', (data) => {
-    queue = data
-  })
+    socket.on('queue', (data) => {
+      queue = data
+    })
 
-  socket.on('connect_error', (err) => {
-    console.error('Socket connection error:', err.message)
-  })
+    socket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err.message)
+    })
 
-  onMount(() => {
-    progress.set(
-      currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
-    )
+    return () => {
+      socket.disconnect()
+    }
   })
 </script>
 
