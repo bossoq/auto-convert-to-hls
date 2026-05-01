@@ -13,7 +13,13 @@ export class API {
   constructor(transcoder: Transcoder, corsHost: string, port?: number) {
     this.app = express()
     this.port = port || 3000
-    this.corsOrigins = corsHost.includes(',') ? corsHost.split(',').map((s) => s.trim()) : corsHost
+    const normalizedCorsHost = corsHost.trim()
+    this.corsOrigins = normalizedCorsHost.includes(',')
+      ? normalizedCorsHost
+          .split(',')
+          .map((s) => s.trim())
+          .filter((s) => s.length > 0)
+      : normalizedCorsHost
     this.transcoder = transcoder
     this.init()
   }
