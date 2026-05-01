@@ -2,8 +2,6 @@
   import { onMount } from 'svelte'
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
-  // import { PUBLIC_SOCKET_URL } from '$env/static/public'
-  import axios from 'axios'
   import io from 'socket.io-client'
 
   let currentStatus = {
@@ -26,39 +24,27 @@
     easing: cubicOut
   })
 
-  const getStatus = async () => {
-    const response = await axios.get('/status')
-    currentStatus = response.data
-  }
-
-  const getQueue = async () => {
-    const response = await axios.get('/queue')
-    queue = response.data
-  }
-
-  const socket = io(import.meta.env.PUBLIC_SOCKET_URL)
+  const socket = io(import.meta.env.PUBLIC_SOCKET_URL || '')
 
   socket.on('status', (data) => {
     currentStatus = data
-    if (currentStatus.progress !== 'NaN') {
-      progress.set(parseFloat(currentStatus.progress))
-    } else {
-      progress.set(0)
-    }
+    progress.set(
+      currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
+    )
   })
 
   socket.on('queue', (data) => {
     queue = data
   })
 
+  socket.on('connect_error', (err) => {
+    console.error('Socket connection error:', err.message)
+  })
+
   onMount(() => {
-    getStatus()
-    getQueue()
-    if (currentStatus.progress !== 'NaN') {
-      progress.set(parseFloat(currentStatus.progress))
-    } else {
-      progress.set(0)
-    }
+    progress.set(
+      currentStatus.progress !== 'NaN' ? parseFloat(currentStatus.progress) : 0
+    )
   })
 </script>
 

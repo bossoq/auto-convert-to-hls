@@ -1,5 +1,4 @@
 import fs from 'fs'
-// import watch from 'node-watch'
 import { watch as chokidarWatch } from 'chokidar'
 import type { Queue } from '../types'
 
@@ -34,6 +33,3 @@ export const watcher = chokidarWatch(SourcePath, {
   usePolling: true,
   depth: 1,
 })
-// export const watcher = watch(SourcePath, {
-//   filter: (f) => /\.mp4$/.test(f) && !/^\._/.test(f),
-// })

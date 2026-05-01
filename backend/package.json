@@ -9,7 +9,9 @@
   "license": "MIT",
   "scripts": {
     "start": "node -r ts-node/register .",
-    "dev": "ts-node-dev ."
+    "dev": "ts-node-dev .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "prettier": {
     "printWidth": 80,
@@ -20,7 +22,8 @@
     "useTabs": false
   },
   "devDependencies": {
-    "@types/express": "^4.17.13"
+    "@types/express": "^4.17.13",
+    "vitest": "^2.0.0"
   },
   "dependencies": {
     "@google-apps/meet": "^0.3.0",
@@ -30,8 +33,8 @@
     "express": "^4.17.3",
     "google-auth-library": "^9.14.2",
     "googleapis": "^144.0.0",
-    "prisma": "^5.22.0",
     "node-watch": "^0.7.3",
+    "prisma": "^5.22.0",
     "socket.io": "^4.5.0",
     "ts-node": "^10.7.0",
     "ts-node-dev": "^1.1.8",

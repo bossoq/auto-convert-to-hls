@@ -1,11 +1,7 @@
 import { spawn } from 'child_process'
 import { parentPort, workerData } from 'worker_threads'
 import type { Queue } from '../types'
-import {
-  DefaultRenditions,
-  DefaultFPS,
-  TranscodeCommand,
-} from './default-renditions'
+import { DefaultRenditions, DefaultFPS, TranscodeCommand } from './default-renditions'
 
 const transcode = async () => {
   const { inputPath, outputPath } = workerData as Queue
@@ -48,8 +44,8 @@ const transcode = async () => {
   let currentFrames = 0
   let currentFPS = 0
   let currentSpeed = 0
-  child.stdout.on('data', (data) => {
-    const logs = data.toString()
+
+  const parseProgress = (logs: string) => {
     const frameMatch = logs.match(/frame=\s*(\d+)/)
     const fpsMatch = logs.match(/fps=\s*(\d+\.*\d*)/)
     const speedMatch = logs.match(/speed=\s*(\d+\.\d+)x/)
@@ -57,33 +53,15 @@ const transcode = async () => {
     if (fpsMatch) currentFPS = parseFloat(fpsMatch[1])
     if (speedMatch) currentSpeed = parseFloat(speedMatch[1])
     parentPort?.postMessage({
-      progress: {
-        frames: currentFrames,
-        fps: currentFPS,
-        speed: currentSpeed,
-      },
+      progress: { frames: currentFrames, fps: currentFPS, speed: currentSpeed },
     })
-  })
-  child.stderr.on('data', (data) => {
-    const logs = data.toString()
-    const frameMatch = logs.match(/frame=\s*(\d+)/)
-    const fpsMatch = logs.match(/fps=\s*(\d+\.*\d*)/)
-    const speedMatch = logs.match(/speed=\s*(\d+\.\d+)x/)
-    if (frameMatch) currentFrames = parseInt(frameMatch[1])
-    if (fpsMatch) currentFPS = parseFloat(fpsMatch[1])
-    if (speedMatch) currentSpeed = parseFloat(speedMatch[1])
-    parentPort?.postMessage({
-      progress: {
-        frames: currentFrames,
-        fps: currentFPS,
-        speed: currentSpeed,
-      },
-    })
-  })
+  }
+
+  child.stdout.on('data', (data) => parseProgress(data.toString()))
+  child.stderr.on('data', (data) => parseProgress(data.toString()))
+
   child.on('close', () => {
-    if (parentPort) {
-      parentPort.postMessage({ done: true })
-    }
+    parentPort?.postMessage({ done: true })
   })
 }
 

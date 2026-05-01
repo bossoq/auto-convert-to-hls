@@ -26,7 +26,7 @@ export class API {
         origin: this.corsHost,
       },
     })
-    this.app.use(cors())
+    this.app.use(cors({ origin: this.corsHost }))
     this.app.use(express.json())
 
     this.app.get('/status', (_req, res) => {
@@ -35,6 +35,11 @@ export class API {
 
     this.app.get('/queue', (_req, res) => {
       res.json(this.transcoder.getQueue())
+    })
+
+    this.io.on('connection', (socket) => {
+      socket.emit('status', this.transcoder.getStatus())
+      socket.emit('queue', this.transcoder.getQueue())
     })
 
     server.listen(this.port, () => {

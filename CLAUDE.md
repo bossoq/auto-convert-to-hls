@@ -25,6 +25,12 @@ yarn web format       # prettier auto-fix
 yarn web check        # svelte-check type checking
 ```
 
+**Testing:**
+```bash
+yarn test              # run backend tests once
+yarn test:watch        # vitest watch mode
+```
+
 **Database:**
 ```bash
 yarn backend prisma generate   # regenerate Prisma client after schema changes
@@ -51,10 +57,10 @@ The system automatically converts MP4 recordings to multi-rendition HLS for vide
 **Transcoder** (`ffmpeg/ffmpeg.ts`): A singleton `Transcoder` class with an internal queue. Jobs are processed one at a time. For each job it:
 1. Creates the output directory under `DEST`
 2. Writes an HLS master playlist (`index.m3u8`)
-3. Takes a screenshot at 00:00:10 as `cover.jpg`
-4. Transcodes to 4 renditions (360p/480p/720p/1080p) using Intel QSV hardware acceleration (`h264_qsv`)
+3. Spawns three concurrent worker threads: `fpscheck-worker.ts` + `framecount-worker.ts` (for progress tracking), `screenshot-worker.ts` (cover image at 00:00:10), and `transcode-worker.ts` (actual encoding)
+4. Transcodes to 4 renditions (360p/480p/720p/1080p) using NVIDIA cuvid hardware acceleration (`h264_cuvid`)
 5. Moves the source file to a `converted/` subdirectory
-6. If `autoPublish=true`, marks `videoProcess.processed=true` and creates a `videoTable` record in Postgres
+6. If `autoPublish=true`, marks `videoProcess.processed=true` and creates a `videoTable` record in Postgres (hardcoded base URL: `https://vod.supapanya.com/`)
 
 After each transcode step, progress is broadcast to all connected Socket.io clients.
 
@@ -87,6 +93,7 @@ Key models:
 | `CLIENT_EMAIL` | — | Service account email |
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject |
+| `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL for auto-published VOD entries |
 
 ### Docker & CI
 
@@ -98,4 +105,4 @@ GitHub Actions (`.github/workflows/docker.yml`) builds and pushes to `ghcr.io/bo
 
 ### Hardware Dependency
 
-The transcoder uses Intel Quick Sync Video (QSV) via `-hwaccel qsv` and `h264_qsv`. The commented-out code in `default-renditions.ts` shows a previous NVIDIA CUDA (`h264_nvenc`) implementation. The host must have an Intel GPU with QSV support for transcoding to work.
+The transcoder uses NVIDIA cuvid via `-hwaccel cuvid` and `h264_cuvid` (see `default-renditions.ts`). The host must have an NVIDIA GPU. Commented-out code in `default-renditions.ts` shows a previous Intel QSV (`h264_qsv`) implementation. `docker-compose.yaml` still uses `runtime: nvidia` and passes `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES`.

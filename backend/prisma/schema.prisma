@@ -59,4 +59,7 @@ model videoProcess {
   teacherId    BigInt    @default(1)
   teacher      userTable @relation(fields: [teacherId], references: [id], onDelete: SetDefault)
   className    String
+
+  @@index([spaceName])
+  @@index([downloaded, processed])
 }

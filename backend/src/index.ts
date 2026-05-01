@@ -19,24 +19,6 @@ const timeoutArr = new Map<string, NodeJS.Timeout>()
 
 const transcoder = new Transcoder({ showLogs: true })
 
-// const watcherChange = watcher.on('add', (evt, name) => {
-//   if (evt == 'update') {
-//     if (typeof name === 'string') {
-//       const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
-//       const splitName = name.match(re)
-//       if (splitName) {
-//         const files: Queue = {
-//           name: splitName[1],
-//           inputPath: `${SourcePath}${splitName[1]}.mp4`,
-//           outputPath: `${DestPath}${splitName[1]}`,
-//         }
-//         console.log(`Founded ${files.name}, checking for complete...`)
-//         debouncer(files)
-//       }
-//     }
-//   }
-// })
-
 const getAllUnfinished = async () => {
   const prisma = new PrismaClient()
   const undownloaded = await prisma.videoProcess.findMany({
@@ -58,22 +40,13 @@ const getAllUnfinished = async () => {
     const conferenceIds = await getConferences(data.spaceName)
     for (const conferenceId of conferenceIds) {
       const fileIds = await getRecording(conferenceId)
-      if (fileIds.length === 0) {
-        continue
-      }
-      let multipleFiles = false
-      if (fileIds.length > 1) {
-        multipleFiles = true
-      }
-      fileIds.forEach(async (fileId, idx) => {
+      if (fileIds.length === 0) continue
+      const multipleFiles = fileIds.length > 1
+      for (const [idx, fileId] of fileIds.entries()) {
         const driveFile = await getDriveFile(fileId, data, idx, multipleFiles)
         await prisma.videoProcess.update({
-          where: {
-            id: data.id,
-          },
-          data: {
-            downloaded: true,
-          },
+          where: { id: data.id },
+          data: { downloaded: true },
         })
         const file: Queue = {
           name: driveFile.replace('.mp4', ''),
@@ -89,7 +62,7 @@ const getAllUnfinished = async () => {
         console.log(`Downloaded ${file.name}`)
         console.log(`Added ${file.name} to queue`)
         transcoder.add(file)
-      })
+      }
     }
   }
 }
@@ -117,6 +90,7 @@ watcher.on('ready', () => {
   console.log('Starting watcher')
   watcherChange
 })
+
 pubsub().then(async (sub) => {
   await getAllUnfinished()
   console.log('Starting pubsub')
@@ -150,19 +124,14 @@ pubsub().then(async (sub) => {
         return
       }
       const videoData = await prisma.videoProcess.findFirst({
-        where: {
-          spaceName: spaceName[1],
-        },
+        where: { spaceName: spaceName[1] },
       })
       if (!videoData) {
         message.ack()
         return
       }
-      let multipleFiles = false
-      if (fileIds.length > 1) {
-        multipleFiles = true
-      }
-      fileIds.forEach(async (fileId, idx) => {
+      const multipleFiles = fileIds.length > 1
+      for (const [idx, fileId] of fileIds.entries()) {
         const driveFile = await getDriveFile(
           fileId,
           videoData,
@@ -170,12 +139,8 @@ pubsub().then(async (sub) => {
           multipleFiles
         )
         await prisma.videoProcess.update({
-          where: {
-            id: videoData.id,
-          },
-          data: {
-            downloaded: true,
-          },
+          where: { id: videoData.id },
+          data: { downloaded: true },
         })
         const files: Queue = {
           name: driveFile.replace('.mp4', ''),
@@ -190,10 +155,9 @@ pubsub().then(async (sub) => {
         }
         console.log(`Added ${files.name} to queue`)
         transcoder.add(files)
-      })
+      }
       message.ack()
     }
-    // message.ack()
   })
   sub.on('error', (error) => {
     console.error(error)
@@ -218,3 +182,4 @@ const debouncer = (queue: Queue) => {
 
 console.log(`Starting Express Server on port ${Port}`)
 export const server = new API(transcoder, CorsHost, parseInt(Port))
+transcoder.setIO(server.io)
