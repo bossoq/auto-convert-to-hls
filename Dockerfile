@@ -23,7 +23,9 @@ RUN yarn
 COPY backend/src/ ./backend/src/
 COPY web/src/ ./web/src/
 COPY web/static/ ./web/static/
-COPY web/postcss.config.cjs web/svelte.config.js web/tailwind.config.cjs ./web/
+COPY web/postcss.config.cjs web/svelte.config.js web/vite.config.js web/tailwind.config.cjs ./web/
+
+RUN yarn web build
 
 EXPOSE 3000
 EXPOSE ${PORT}
