@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "0.1.0",
   "engines": {
-    "node": ">=16"
+    "node": ">=24"
   },
   "main": "src/index.ts",
   "author": "Kittipos Wajakajornrit",
@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
-    "vitest": "^1.0.0"
+    "vitest": "^2.0.0"
   },
   "dependencies": {
     "@google-apps/meet": "^0.3.0",
