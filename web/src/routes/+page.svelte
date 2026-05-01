@@ -27,7 +27,7 @@
   let socket: Socket | undefined
 
   onMount(() => {
-    import('socket.io-client').then(({ default: io }) => {
+    import('socket.io-client').then(({ io }) => {
       socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
         transports: ['websocket']
       })
