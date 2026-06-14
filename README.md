@@ -4,6 +4,18 @@
 
 Automatically converts MP4 recordings to multi-rendition HLS for video-on-demand. Supports two ingestion sources: a watched filesystem directory and Google Meet recordings via Google Pub/Sub.
 
+```mermaid
+flowchart LR
+    FS["📁 Filesystem<br/>watcher"] --> Q
+    GM["🎥 Google Meet<br/>(Pub/Sub)"] --> Q
+    Q["Transcoder<br/>(sequential queue)"] --> FF["ffmpeg + NVENC<br/>4 renditions"]
+    FF --> DEST["📁 HLS output"]
+    Q -->|live status| WEB["🌐 Web UI<br/>(Socket.io)"]
+    Q -->|auto-publish| DB[("PostgreSQL")]
+```
+
+> **Architecture & design:** see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for system design, ingestion/transcoding workflows, data-flow and data-model diagrams.
+
 ## Requirements
 
 - Node.js ≥ 24 with Yarn

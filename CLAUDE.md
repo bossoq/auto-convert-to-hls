@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-This is a Yarn workspaces monorepo. Run all commands from the repo root.
+This is a Yarn (Classic / v1) workspaces monorepo. Run all commands from the repo root. **Node.js 24+ is required** (`backend/package.json` declares `engines.node >= 24`; CI uses Node 24).
 
 **Development:**
 ```bash
@@ -44,6 +44,8 @@ docker compose up     # build and run via docker-compose.yaml
 
 ## Architecture
 
+> For diagrams (system design, ingestion/transcoding workflows, data flow, data model) see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ### Overview
 
 The system automatically converts MP4 recordings to multi-rendition HLS for video-on-demand. There are two ingestion paths that both feed a single sequential transcoding queue.
@@ -60,9 +62,11 @@ The system automatically converts MP4 recordings to multi-rendition HLS for vide
 3. Spawns three concurrent worker threads: `fpscheck-worker.ts` + `framecount-worker.ts` (for progress tracking), `screenshot-worker.ts` (cover image at 00:00:10), and `transcode-worker.ts` (actual encoding)
 4. Transcodes to 4 renditions (360p/480p/720p/1080p) using NVIDIA cuvid hardware acceleration (`h264_cuvid`)
 5. Moves the source file to a `converted/` subdirectory
-6. If `autoPublish=true`, marks `videoProcess.processed=true` and creates a `videoTable` record in Postgres (base URL from `VOD_BASE_URL` env var)
+6. If `autoPublish=true` (set only on the Pub/Sub ingestion path), runs `autoPublish()`: marks `videoProcess.processed=true`, then creates a `videoTable` record (`name`=`className`, `baseUrl`=`${VOD_BASE_URL}/${name}`, `type='vod'`, `allowAll=false`, `fileType='HLS'`) and one `videoAccess` join row per participant user id carried in `queue.meta.participants`.
 
 After each transcode step, progress is broadcast to all connected Socket.io clients.
+
+The job/queue shape is defined by the `Queue` interface in `types.ts`: `{ name, inputPath, outputPath, autoPublish?, meta?: { id, participants: number[], className } }`. Filesystem-watcher jobs omit `autoPublish`/`meta`, so they transcode without publishing to Postgres.
 
 **API** (`api/express.ts`): Express server with Socket.io. Two REST endpoints: `GET /status` (current job progress) and `GET /queue` (pending jobs). Socket.io emits `status` and `queue` events on every state change, and pushes current state to each client immediately on `connection`.
 
@@ -72,10 +76,11 @@ SvelteKit frontend. Connects to the backend via Socket.io (URL from `PUBLIC_SOCK
 
 ### Database (Prisma + PostgreSQL)
 
-Key models:
-- `videoProcess` — tracks Google Meet recordings: `spaceName`, `downloaded`, `processed`, `participants`, `className`
-- `videoTable` — published VOD entries with `baseUrl`, `allowList`, `fileType`
-- `userTable` / `postTable` — user/content management shared with a broader platform
+Key models (`backend/prisma/schema.prisma`):
+- `videoProcess` — tracks Google Meet recordings: `spaceName`, `createdAt`, `subscribed`, `downloaded`, `processed`, `participants` (JSON array of user ids), `className`, and `teacherId` → `teacher` relation to `userTable`.
+- `videoTable` — published VOD entries: `name`, `baseUrl`, `type`, `allowAll` (default `true`; set `false` on auto-publish), `fileType` (default `HLS`).
+- `videoAccess` — join table granting individual users access to a `videoTable` entry (`videoId` + `userId`, unique together). Auto-publish populates this from `videoProcess.participants`. Note: this model uses row-level security and needs the extra setup described at https://pris.ly/d/row-level-security for migrations.
+- `userTable` / `postTable` — user/content management shared with a broader platform.
 
 ### Environment Variables
 
@@ -100,13 +105,15 @@ Key models:
 
 `docker-compose.yaml` mounts host paths and uses `runtime: nvidia`, passing `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES` to the container.
 
-Two GitHub Actions workflows:
-- `.github/workflows/docker.yml` — builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with short SHA and `latest`
-- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 37 tests) on every push and PR to `main`
+Four GitHub Actions workflows:
+- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 42 tests) on Node 24 for every push and PR to `main`.
+- `.github/workflows/main.yml` ("CI") — on every push, runs `yarn web lint` then `yarn web build` (lints and builds the web workspace on Node 24).
+- `.github/workflows/docker.yml` — builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with short SHA and `latest`.
+- `.github/workflows/release.yml` — on a PR merged into `main` that carries the `release` label, reads the version from `package.json`, creates a GitHub Release (`v<version>`), and pushes a versioned + `latest` image. (The old `/release` body marker is no longer used.)
 
 ### Testing
 
-Tests live in `backend/src/__tests__/`. All tests mock Worker threads, PrismaClient, and fs — no GPU, database, or ffmpeg required to run them.
+Tests live in `backend/src/__tests__/` (`renditions`, `watcher`, `transcoder`, `express`). All tests mock Worker threads, PrismaClient, and fs — no GPU, database, or ffmpeg required to run them. Run them with `yarn test` (requires Node 24).
 
 ### Hardware Dependency
 
