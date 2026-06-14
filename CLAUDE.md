@@ -44,6 +44,8 @@ docker compose up     # build and run via docker-compose.yaml
 
 ## Architecture
 
+> For diagrams (system design, ingestion/transcoding workflows, data flow, data model) see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
 ### Overview
 
 The system automatically converts MP4 recordings to multi-rendition HLS for video-on-demand. There are two ingestion paths that both feed a single sequential transcoding queue.
