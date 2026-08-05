@@ -118,29 +118,30 @@ export class Transcoder {
   }
 
   private getFramesCount(queue: Queue) {
+    let fps = 0
+    let framesCount = 0
+    let fpsReady = false
+    let framesReady = false
+
+    const tryCalculate = () => {
+      if (!fpsReady || !framesReady || fps === 0) return
+      this.totalFramesCount = parseInt(
+        ((framesCount * DefaultFPS) / fps).toFixed(0)
+      )
+      if (this.options.showLogs)
+        console.log(`Total Frames: ${this.totalFramesCount}`)
+      this.socketSend()
+    }
+
     const fpsWorker = new Worker('./src/ffmpeg/fpscheck-worker.ts', {
       workerData: queue,
     })
-    fpsWorker.on('message', (fps: number) => {
-      if (this.options.showLogs) console.log(`Input FPS: ${fps}`)
-      const framecountWorker = new Worker('./src/ffmpeg/framecount-worker.ts', {
-        workerData: queue,
-      })
-      framecountWorker.on('message', (framesCount: number) => {
-        this.totalFramesCount = parseInt(
-          ((framesCount * DefaultFPS) / fps).toFixed(0)
-        )
-        if (this.options.showLogs)
-          console.log(`Total Frames: ${this.totalFramesCount}`)
-        this.socketSend()
-      })
-      framecountWorker.on('error', (err) => {
-        console.error(`Cannot get frames count: ${err}`)
-      })
-      framecountWorker.on('exit', (code) => {
-        if (code !== 0)
-          console.error(new Error(`framecount-worker stopped with exit code ${code}`))
-      })
+    fpsWorker.on('message', (msg: number | { error: string }) => {
+      if (typeof msg !== 'number') return
+      if (this.options.showLogs) console.log(`Input FPS: ${msg}`)
+      fps = msg
+      fpsReady = true
+      tryCalculate()
     })
     fpsWorker.on('error', (err) => {
       console.error(`Cannot get FPS: ${err}`)
@@ -148,6 +149,23 @@ export class Transcoder {
     fpsWorker.on('exit', (code) => {
       if (code !== 0)
         console.error(new Error(`fpscheck-worker stopped with exit code ${code}`))
+    })
+
+    const framecountWorker = new Worker('./src/ffmpeg/framecount-worker.ts', {
+      workerData: queue,
+    })
+    framecountWorker.on('message', (msg: number | { error: string }) => {
+      if (typeof msg !== 'number') return
+      framesCount = msg
+      framesReady = true
+      tryCalculate()
+    })
+    framecountWorker.on('error', (err) => {
+      console.error(`Cannot get frames count: ${err}`)
+    })
+    framecountWorker.on('exit', (code) => {
+      if (code !== 0)
+        console.error(new Error(`framecount-worker stopped with exit code ${code}`))
     })
   }
 
