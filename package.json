@@ -1,6 +1,6 @@
 {
   "name": "auto-convert-to-hls",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "repository": "https://github.com/bossoq/auto-convert-to-hls.git",
   "author": "Kittipos Wajakajornrit <kwajakajornrit@gmail.com>",
   "license": "MIT",
