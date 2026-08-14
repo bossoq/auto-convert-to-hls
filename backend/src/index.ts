@@ -68,7 +68,7 @@ const getAllUnfinished = async () => {
 }
 
 const watcherChange = watcher.on('add', (path) => {
-  const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
+  const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\\/(.+)\\.mp4$`)
   const splitName = path.match(re)
   if (splitName) {
     if (splitName[1].startsWith('.')) return
@@ -97,9 +97,12 @@ pubsub().then(async (sub) => {
   const prisma = new PrismaClient()
   sub.on('message', async (message) => {
     if (
-      message.attributes['ce-type'] ===
+      message.attributes['ce-type'] !==
       'google.workspace.meet.recording.v2.fileGenerated'
     ) {
+      return
+    }
+    try {
       const subject = message.attributes['ce-subject']
       const spaceName = subject.match(
         /^\/\/meet\.googleapis\.com\/(spaces\/.+)$/
@@ -157,11 +160,16 @@ pubsub().then(async (sub) => {
         transcoder.add(files)
       }
       message.ack()
+    } catch (err) {
+      console.error(`Failed to process pubsub message ${message.id}: ${err}`)
+      message.nack()
     }
   })
   sub.on('error', (error) => {
     console.error(error)
   })
+}).catch((err) => {
+  console.error('Pub/Sub ingestion failed to start:', err)
 })
 
 const debouncer = (queue: Queue) => {

@@ -132,6 +132,17 @@ describe('bulkAdd', () => {
     expect(() => transcoder.bulkAdd([])).not.toThrow()
     expect(transcoder.getStatus().busy).toBe(false)
   })
+
+  it('deduplicates entries within the batch and against the in-flight job', () => {
+    transcoder.add(makeQueue('job-a')) // starts processing
+    transcoder.bulkAdd([
+      makeQueue('job-a'), // duplicate of in-flight job — should be dropped
+      makeQueue('job-b'),
+      makeQueue('job-b') // duplicate within the batch — should be dropped
+    ])
+    expect(transcoder.getQueue().length).toBe(1)
+    expect(transcoder.getQueue().queue[0].name).toBe('job-b')
+  })
 })
 
 describe('setIO', () => {

@@ -23,6 +23,10 @@ const getScreenshot = async () => {
     console.error(`ffmpeg stderr: ${data}`)
     parentPort?.postMessage({ error: data.toString() })
   })
+  child.on('error', (err) => {
+    console.error(`ffmpeg spawn error: ${err}`)
+    parentPort?.postMessage({ error: err.message })
+  })
   child.on('close', () => {
     if (parentPort) {
       parentPort.postMessage(logs)

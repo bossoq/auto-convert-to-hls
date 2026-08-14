@@ -48,7 +48,11 @@ export class Transcoder {
   }
 
   bulkAdd(queues: Queue[]) {
-    this.queue.push(...queues)
+    for (const queue of queues) {
+      if (this.queue.find((q) => q.name === queue.name)) continue
+      if (this.name === queue.name) continue
+      this.queue.push(queue)
+    }
     this.socketSend()
     this.start()
   }
@@ -86,10 +90,16 @@ export class Transcoder {
   private async createHLS(queue: Queue) {
     this.socketSend()
     if (this.options.showLogs) console.log(`Starting Job: ${this.name}`)
-    const outputPath = await this.makeOutputDir(queue)
-    if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
-    const masterPlaylist = await this.writePlaylist(queue)
-    if (this.options.showLogs) console.log(`Create Master Playlist: ${masterPlaylist}`)
+    try {
+      const outputPath = await this.makeOutputDir(queue)
+      if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
+      const masterPlaylist = await this.writePlaylist(queue)
+      if (this.options.showLogs) console.log(`Create Master Playlist: ${masterPlaylist}`)
+    } catch (err) {
+      console.error(`Cannot prepare output for ${queue.name}: ${err}`)
+      this.done()
+      return
+    }
     this.getFramesCount(queue)
     this.screenshot(queue)
     this.transcode(queue)
@@ -111,8 +121,12 @@ export class Transcoder {
       `${queue.name}.mp4`,
       ''
     )}converted/${queue.name}.mp4`
-    fs.renameSync(queue.inputPath, movePath)
-    if (this.options.showLogs) console.log(`Move File: ${movePath}`)
+    try {
+      fs.renameSync(queue.inputPath, movePath)
+      if (this.options.showLogs) console.log(`Move File: ${movePath}`)
+    } catch (err) {
+      console.error(`Cannot move finished file ${queue.inputPath}: ${err}`)
+    }
     this.socketSend()
     return movePath
   }
@@ -137,7 +151,10 @@ export class Transcoder {
       workerData: queue,
     })
     fpsWorker.on('message', (msg: number | { error: string }) => {
-      if (typeof msg !== 'number') return
+      if (typeof msg !== 'number') {
+        console.error(`fpscheck-worker error: ${msg.error}`)
+        return
+      }
       if (this.options.showLogs) console.log(`Input FPS: ${msg}`)
       fps = msg
       fpsReady = true
@@ -155,7 +172,10 @@ export class Transcoder {
       workerData: queue,
     })
     framecountWorker.on('message', (msg: number | { error: string }) => {
-      if (typeof msg !== 'number') return
+      if (typeof msg !== 'number') {
+        console.error(`framecount-worker error: ${msg.error}`)
+        return
+      }
       framesCount = msg
       framesReady = true
       tryCalculate()
@@ -173,8 +193,12 @@ export class Transcoder {
     const screenshotWorker = new Worker('./src/ffmpeg/screenshot-worker.ts', {
       workerData: queue,
     })
-    screenshotWorker.on('message', (logs: string) => {
-      if (this.options.showLogs) console.log(logs)
+    screenshotWorker.on('message', (msg: string | { error: string }) => {
+      if (typeof msg !== 'string') {
+        console.error(`screenshot-worker error: ${msg.error}`)
+        return
+      }
+      if (this.options.showLogs) console.log(msg)
       console.log('Screenshot worker done')
     })
     screenshotWorker.on('error', (err) => {
@@ -213,9 +237,11 @@ export class Transcoder {
         doneReceived = true
         if (this.options.showLogs) console.log('Transcode worker done')
         this.moveFinished(queue)
-        this.autoPublish(queue).then(() => {
-          this.done()
-        })
+        this.autoPublish(queue)
+          .catch((err) => console.error(`Cannot auto-publish ${queue.name}: ${err}`))
+          .finally(() => {
+            this.done()
+          })
       }
     })
     transcodeWorker.on('error', (err) => {
@@ -230,31 +256,39 @@ export class Transcoder {
   }
 
   private makeOutputDir(queue: Queue): Promise<string> {
-    return new Promise(async (resolve, _reject) => {
-      const outputPath = `${queue.outputPath}`
-      if (!fs.existsSync(outputPath)) {
-        fs.mkdirSync(outputPath, { recursive: true })
+    return new Promise((resolve, reject) => {
+      try {
+        const outputPath = `${queue.outputPath}`
+        if (!fs.existsSync(outputPath)) {
+          fs.mkdirSync(outputPath, { recursive: true })
+        }
+        resolve(outputPath)
+      } catch (err) {
+        reject(err)
       }
-      resolve(outputPath)
     })
   }
 
   private writePlaylist(queue: Queue): Promise<string> {
-    return new Promise(async (resolve, _reject) => {
-      let m3u8Playlist = `#EXTM3U
+    return new Promise((resolve, reject) => {
+      try {
+        let m3u8Playlist = `#EXTM3U
 #EXT-X-VERSION:3`
-      const renditions = DefaultRenditions
-      for (let i = 0, len = renditions.length; i < len; i++) {
-        const r = renditions[i]
-        m3u8Playlist += `
+        const renditions = DefaultRenditions
+        for (let i = 0, len = renditions.length; i < len; i++) {
+          const r = renditions[i]
+          m3u8Playlist += `
 #EXT-X-STREAM-INF:BANDWIDTH=${r.bv.replace('k', '000')},RESOLUTION=${r.width}x${
-          r.height
-        }
+            r.height
+          }
 ${r.height}.m3u8`
+        }
+        const m3u8Path = `${queue.outputPath}/index.m3u8`
+        fs.writeFileSync(m3u8Path, m3u8Playlist)
+        resolve(m3u8Path)
+      } catch (err) {
+        reject(err)
       }
-      const m3u8Path = `${queue.outputPath}/index.m3u8`
-      fs.writeFileSync(m3u8Path, m3u8Playlist)
-      resolve(m3u8Path)
     })
   }
 

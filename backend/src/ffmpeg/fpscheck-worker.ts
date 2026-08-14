@@ -20,6 +20,10 @@ const getFPS = async () => {
     console.error(`ffprobe stderr: ${data}`)
     parentPort?.postMessage({ error: data.toString() })
   })
+  child.on('error', (err) => {
+    console.error(`ffprobe spawn error: ${err}`)
+    parentPort?.postMessage({ error: err.message })
+  })
   child.on('close', () => {
     if (parentPort) {
       parentPort.postMessage(fps)

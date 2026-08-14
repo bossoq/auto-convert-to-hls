@@ -61,16 +61,30 @@ const transcode = async () => {
     })
   }
 
+  let stderrBuffer = ''
+  let doneSent = false
+  const sendDone = () => {
+    if (doneSent) return
+    doneSent = true
+    parentPort?.postMessage({ done: true })
+  }
+
   child.stdout.on('data', (data) => {
     parseProgress(data.toString())
   })
   child.stderr.on('data', (data) => {
-    parseProgress(data.toString())
+    const str = data.toString()
+    stderrBuffer += str
+    parseProgress(str)
+  })
+  child.on('error', (err) => {
+    console.error(`TRANSCODE SPAWN ERROR: ${err}`)
+    sendDone()
   })
 
   child.on('close', (code) => {
-    if (code !== 0) console.error(`TRANSCODE EXIT CODE: ${code}`)
-    parentPort?.postMessage({ done: true })
+    if (code !== 0) console.error(`TRANSCODE FAILED (exit ${code}):\n${stderrBuffer}`)
+    sendDone()
   })
 }
 

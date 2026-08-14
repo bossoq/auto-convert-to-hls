@@ -96,6 +96,7 @@ export const getDriveFile = async (
       throw new Error('Failed to get file')
     }
   } catch (error) {
+    console.error(`Failed to get Drive file ${fileId}: ${error}`)
     throw new Error('Failed to get file')
   }
 }

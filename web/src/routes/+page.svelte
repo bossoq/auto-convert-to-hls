@@ -3,6 +3,7 @@
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
   import type { Socket } from 'socket.io-client'
+  import { env } from '$env/dynamic/public'
 
   let currentStatus = {
     busy: false,
@@ -33,7 +34,7 @@
       .then(({ io }) => {
         if (cancelled) return
 
-        socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
+        socket = io(env.PUBLIC_SOCKET_URL || '', {
           transports: ['websocket']
         })
 
