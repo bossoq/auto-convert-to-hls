@@ -1,4 +1,4 @@
-FROM jrottenberg/ffmpeg:4.1-nvidia
+FROM jrottenberg/ffmpeg:6.1-nvidia
 
 RUN apt-get update && apt-get install -y \
     curl \
