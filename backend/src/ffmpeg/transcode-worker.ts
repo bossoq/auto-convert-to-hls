@@ -14,7 +14,7 @@ const transcode = async () => {
       '-c:v',
       'h264_nvenc',
       '-preset',
-      'medium',
+      'p4',
       '-c:a',
       'aac',
       '-ar',
