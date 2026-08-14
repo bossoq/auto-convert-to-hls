@@ -3,6 +3,7 @@ import { PubSub, type Subscription } from '@google-cloud/pubsub'
 import { ConferenceRecordsServiceClient } from '@google-apps/meet'
 import { google } from 'googleapis'
 import { writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import type { videoProcess } from '@prisma/client'
 
 const SourcePath = process.env.SOURCE || '/source/'
@@ -78,6 +79,11 @@ export const getDriveFile = async (
   } else {
     fileName = `${fileName}.mp4`
   }
+  const fullPath = `${SourcePath}google/${fileName}`
+  if (existsSync(fullPath)) {
+    return fileName
+  }
+
   const client = google.drive({
     version: 'v3',
     auth: saClient,
@@ -87,7 +93,6 @@ export const getDriveFile = async (
       fileId,
       alt: 'media',
     })
-    const fullPath = `${SourcePath}google/${fileName}`
     if (file.status === 200) {
       const data = file.data as unknown as Blob
       await writeFile(fullPath, Buffer.from(await data.arrayBuffer()))

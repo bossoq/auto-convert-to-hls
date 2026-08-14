@@ -47,6 +47,10 @@ export class API {
       socket.emit('queue', this.transcoder.getQueue())
     })
 
+    server.on('error', (err) => {
+      console.error(`Express server error: ${err}`)
+    })
+
     server.listen(this.port, () => {
       console.log(`Server started on port ${this.port}`)
     })

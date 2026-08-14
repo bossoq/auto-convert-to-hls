@@ -127,7 +127,8 @@ pubsub().then(async (sub) => {
         return
       }
       const videoData = await prisma.videoProcess.findFirst({
-        where: { spaceName: spaceName[1] },
+        where: { spaceName: spaceName[1], processed: false },
+        orderBy: { createdAt: 'desc' },
       })
       if (!videoData) {
         message.ack()
