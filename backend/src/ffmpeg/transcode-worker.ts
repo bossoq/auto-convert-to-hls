@@ -60,8 +60,16 @@ const transcode = async () => {
     })
   }
 
-  child.stdout.on('data', (data) => parseProgress(data.toString()))
-  child.stderr.on('data', (data) => parseProgress(data.toString()))
+  child.stdout.on('data', (data) => {
+    const str = data.toString()
+    if (str.includes('frame=')) console.log(`TRANSCODE STDOUT: ${str.trim()}`)
+    parseProgress(str)
+  })
+  child.stderr.on('data', (data) => {
+    const str = data.toString()
+    if (str.includes('frame=')) console.log(`TRANSCODE STDERR: ${str.trim()}`)
+    parseProgress(str)
+  })
 
   child.on('close', () => {
     parentPort?.postMessage({ done: true })
