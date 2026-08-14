@@ -59,9 +59,7 @@ export const TranscodeCommand = [
   '10M',
   '-probesize',
   '32M',
-  '-progress',
-  'pipe:1',
-  '-nostats',
+  '-stats',
 ]
 
 export const ScreenshotCommand = ['-y', '-ss', '00:00:10']
