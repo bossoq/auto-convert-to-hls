@@ -49,6 +49,7 @@ const transcode = async () => {
     const frameMatches = [...logs.matchAll(/frame=\s*(\d+)/g)]
     const fpsMatches = [...logs.matchAll(/fps=\s*(\d+\.?\d*)/g)]
     const speedMatches = [...logs.matchAll(/speed=\s*(\d+\.?\d*)x/g)]
+    if (frameMatches.length === 0 && fpsMatches.length === 0 && speedMatches.length === 0) return
     if (frameMatches.length > 0)
       currentFrames = parseInt(frameMatches[frameMatches.length - 1][1])
     if (fpsMatches.length > 0)
@@ -61,14 +62,10 @@ const transcode = async () => {
   }
 
   child.stdout.on('data', (data) => {
-    const str = data.toString()
-    console.log(`TRANSCODE STDOUT: ${str.trim()}`)
-    parseProgress(str)
+    parseProgress(data.toString())
   })
   child.stderr.on('data', (data) => {
-    const str = data.toString()
-    console.error(`TRANSCODE STDERR: ${str.trim()}`)
-    parseProgress(str)
+    parseProgress(data.toString())
   })
 
   child.on('close', (code) => {
