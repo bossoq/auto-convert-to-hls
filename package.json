@@ -1,12 +1,12 @@
 {
   "name": "auto-convert-to-hls",
-  "version": "2.0.10",
+  "version": "2.0.11",
   "repository": "https://github.com/bossoq/auto-convert-to-hls.git",
   "author": "Kittipos Wajakajornrit <kwajakajornrit@gmail.com>",
   "license": "MIT",
   "private": true,
   "scripts": {
-    "start": "yarn backend prisma generate && yarn backend-start & yarn web-start",
+    "start": "yarn backend prisma generate && bash -c 'yarn backend-start & yarn web-start & wait -n'",
     "dev": "yarn backend-dev & yarn web-dev",
     "backend-start": "yarn backend start",
     "web-start": "PORT=3000 node web/build/index.js",
@@ -21,7 +21,7 @@
     "backend",
     "web"
   ],
-  "dependencies": {
+  "devDependencies": {
     "vitest": "^2.0.0"
   }
 }

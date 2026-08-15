@@ -3,6 +3,7 @@
   import { tweened } from 'svelte/motion'
   import { cubicOut } from 'svelte/easing'
   import type { Socket } from 'socket.io-client'
+  import { env } from '$env/dynamic/public'
 
   let currentStatus = {
     busy: false,
@@ -25,6 +26,7 @@
   })
 
   let socket: Socket | undefined
+  let connected = false
 
   onMount(() => {
     let cancelled = false
@@ -33,8 +35,16 @@
       .then(({ io }) => {
         if (cancelled) return
 
-        socket = io(import.meta.env.PUBLIC_SOCKET_URL || '', {
+        socket = io(env.PUBLIC_SOCKET_URL || '', {
           transports: ['websocket']
+        })
+
+        socket.on('connect', () => {
+          connected = true
+        })
+
+        socket.on('disconnect', () => {
+          connected = false
         })
 
         socket.on('status', (data) => {
@@ -67,6 +77,11 @@
   <h1 class="font-bold text:2xl sm:text-6xl dark:text-teal-200 text-teal-800 flex flex-col">
     <span>Auto HLS Status</span>
   </h1>
+  {#if !connected}
+    <p class="font-medium text-lg sm:text-2xl text-red-600 dark:text-red-400">
+      Disconnected from server — reconnecting…
+    </p>
+  {/if}
   <div class="w-4/5 flex flex-col gap-2 justify-start items-center">
     <p class="font-medium text-lg sm:text-4xl dark:text-teal-200 text-teal-800">
       Status: {currentStatus.busy ? 'Converting' : 'Available'}

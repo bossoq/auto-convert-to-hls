@@ -3,9 +3,13 @@ import http from 'http'
 import cors from 'cors'
 import { Server } from 'socket.io'
 import type { Transcoder } from '../ffmpeg/ffmpeg'
+import { logInfo, logError } from '../logger'
 
 export function parseCorsOrigins(corsHost: string): string | string[] {
-  const origins = corsHost.split(',').map((s) => s.trim()).filter(Boolean)
+  const origins = corsHost
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
   return origins.length === 1 ? origins[0] : origins
 }
 
@@ -25,7 +29,7 @@ export class API {
 
   private init() {
     const server = http.createServer(this.app)
-    console.log(`Set CORS: ${this.corsOrigins}`)
+    logInfo(`Set CORS: ${this.corsOrigins}`)
     this.io = new Server(server, {
       cors: {
         origin: this.corsOrigins,
@@ -47,8 +51,12 @@ export class API {
       socket.emit('queue', this.transcoder.getQueue())
     })
 
+    server.on('error', (err) => {
+      logError(`Express server error: ${err}`)
+    })
+
     server.listen(this.port, () => {
-      console.log(`Server started on port ${this.port}`)
+      logInfo(`Server started on port ${this.port}`)
     })
   }
 }

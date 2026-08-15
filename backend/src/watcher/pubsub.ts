@@ -3,7 +3,9 @@ import { PubSub, type Subscription } from '@google-cloud/pubsub'
 import { ConferenceRecordsServiceClient } from '@google-apps/meet'
 import { google } from 'googleapis'
 import { writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import type { videoProcess } from '@prisma/client'
+import { logInfo, logError } from '../logger'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const ProjectId = process.env.PROJECT_ID || ''
@@ -23,12 +25,12 @@ export const pubsub = async (): Promise<Subscription> => {
   })
 
   const [topic] = await pubsub.topic(TopicName).get({ autoCreate: true })
-  console.log(`Topic ${topic.name} is ready`)
+  logInfo(`Topic ${topic.name} is ready`)
 
   const [subscription] = await topic
     .subscription(SubscriptionName)
     .get({ autoCreate: true })
-  console.log(`Subscription ${subscription.name} is ready`)
+  logInfo(`Subscription ${subscription.name} is ready`)
 
   return subscription
 }
@@ -56,7 +58,7 @@ export const getRecording = async (conferenceId: string): Promise<string[]> => {
       (recording) =>
         recording.driveDestination && recording.driveDestination.file
     )
-    .filter((fileId): fileId is string => fileId !== undefined)
+    .filter((fileId): fileId is string => fileId != null)
   return fileIds
 }
 
@@ -78,6 +80,11 @@ export const getDriveFile = async (
   } else {
     fileName = `${fileName}.mp4`
   }
+  const fullPath = `${SourcePath}google/${fileName}`
+  if (existsSync(fullPath)) {
+    return fileName
+  }
+
   const client = google.drive({
     version: 'v3',
     auth: saClient,
@@ -87,15 +94,15 @@ export const getDriveFile = async (
       fileId,
       alt: 'media',
     })
-    const fullPath = `${SourcePath}google/${fileName}`
     if (file.status === 200) {
       const data = file.data as unknown as Blob
-      await writeFile(fullPath, Buffer.from(await data.arrayBuffer()))
+      await writeFile(fullPath, new Uint8Array(await data.arrayBuffer()))
       return fileName
     } else {
       throw new Error('Failed to get file')
     }
   } catch (error) {
+    logError(`Failed to get Drive file ${fileId}: ${error}`)
     throw new Error('Failed to get file')
   }
 }
@@ -109,8 +116,6 @@ export const getConferences = async (spaceName: string): Promise<string[]> => {
   })
   const conferenceIds = conferences
     .map((conference) => conference.name)
-    .filter(
-      (conferenceId): conferenceId is string => conferenceId !== undefined
-    )
+    .filter((conferenceId): conferenceId is string => conferenceId != null)
   return conferenceIds
 }

@@ -23,7 +23,7 @@ export const watcher = chokidarWatch(SourcePath, {
   ignored: (file: string) => {
     if (file.includes('/google/')) return true
     const matcher = file.match(
-      new RegExp(`${SourcePath.replace(/\W/g, '')}\/(.+)\.mp4`)
+      new RegExp(`${SourcePath.replace(/\W/g, '')}\\/(.+)\\.mp4$`)
     )
     if (!matcher) return true
     const fileName = matcher[1]

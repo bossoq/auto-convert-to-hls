@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import { parentPort, workerData } from 'worker_threads'
 import type { Queue } from '../types'
 import { ScreenshotCommand } from './default-renditions'
+import { logError } from '../logger'
 
 const getScreenshot = async () => {
   const { inputPath, outputPath } = workerData as Queue
@@ -15,18 +16,16 @@ const getScreenshot = async () => {
     `${outputPath}/cover.jpg`,
   ])
   const child = spawn('ffmpeg', commands)
-  let logs = ''
-  child.stdout.on('data', (data) => {
-    logs += data.toString()
-  })
   child.stderr.on('data', (data) => {
-    console.error(`ffmpeg stderr: ${data}`)
+    logError(`ffmpeg stderr: ${data}`)
     parentPort?.postMessage({ error: data.toString() })
   })
+  child.on('error', (err) => {
+    logError(`ffmpeg spawn error: ${err}`)
+    parentPort?.postMessage({ error: err.message })
+  })
   child.on('close', () => {
-    if (parentPort) {
-      parentPort.postMessage(logs)
-    }
+    parentPort?.postMessage('done')
   })
 }
 
