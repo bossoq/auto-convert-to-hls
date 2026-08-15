@@ -3,6 +3,7 @@ import { DefaultRenditions, DefaultFPS } from './default-renditions'
 import fs from 'fs'
 import { PrismaClient } from '@prisma/client'
 import type { Options, Queue } from '../types'
+import { logInfo, logError } from '../logger'
 
 const VodBaseUrl = process.env.VOD_BASE_URL || 'https://vod.supapanya.com'
 
@@ -96,16 +97,15 @@ export class Transcoder {
 
   private async createHLS(queue: Queue) {
     this.socketSend()
-    if (this.options.showLogs) console.log(`Starting Job: ${this.name}`)
+    if (this.options.showLogs) logInfo(`Starting Job: ${this.name}`)
     try {
       const outputPath = await this.makeOutputDir(queue)
-      if (this.options.showLogs)
-        console.log(`Create Output Path: ${outputPath}`)
+      if (this.options.showLogs) logInfo(`Create Output Path: ${outputPath}`)
       const masterPlaylist = await this.writePlaylist(queue)
       if (this.options.showLogs)
-        console.log(`Create Master Playlist: ${masterPlaylist}`)
+        logInfo(`Create Master Playlist: ${masterPlaylist}`)
     } catch (err) {
-      console.error(`Cannot prepare output for ${queue.name}: ${err}`)
+      logError(`Cannot prepare output for ${queue.name}: ${err}`)
       this.done()
       return
     }
@@ -132,9 +132,9 @@ export class Transcoder {
     )}converted/${queue.name}.mp4`
     try {
       fs.renameSync(queue.inputPath, movePath)
-      if (this.options.showLogs) console.log(`Move File: ${movePath}`)
+      if (this.options.showLogs) logInfo(`Move File: ${movePath}`)
     } catch (err) {
-      console.error(`Cannot move finished file ${queue.inputPath}: ${err}`)
+      logError(`Cannot move finished file ${queue.inputPath}: ${err}`)
     }
     this.socketSend()
     return movePath
@@ -151,7 +151,7 @@ export class Transcoder {
       const computed = parseInt(((framesCount * DefaultFPS) / fps).toFixed(0))
       this.totalFramesCount = Math.max(this.totalFramesCount, computed)
       if (this.options.showLogs)
-        console.log(`Total Frames: ${this.totalFramesCount}`)
+        logInfo(`Total Frames: ${this.totalFramesCount}`)
       this.socketSend()
     }
 
@@ -160,22 +160,20 @@ export class Transcoder {
     })
     fpsWorker.on('message', (msg: number | { error: string }) => {
       if (typeof msg !== 'number') {
-        console.error(`fpscheck-worker error: ${msg.error}`)
+        logError(`fpscheck-worker error: ${msg.error}`)
         return
       }
-      if (this.options.showLogs) console.log(`Input FPS: ${msg}`)
+      if (this.options.showLogs) logInfo(`Input FPS: ${msg}`)
       fps = msg
       fpsReady = true
       tryCalculate()
     })
     fpsWorker.on('error', (err) => {
-      console.error(`Cannot get FPS: ${err}`)
+      logError(`Cannot get FPS: ${err}`)
     })
     fpsWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(
-          new Error(`fpscheck-worker stopped with exit code ${code}`)
-        )
+        logError(new Error(`fpscheck-worker stopped with exit code ${code}`))
     })
 
     const framecountWorker = new Worker('./src/ffmpeg/framecount-worker.ts', {
@@ -183,7 +181,7 @@ export class Transcoder {
     })
     framecountWorker.on('message', (msg: number | { error: string }) => {
       if (typeof msg !== 'number') {
-        console.error(`framecount-worker error: ${msg.error}`)
+        logError(`framecount-worker error: ${msg.error}`)
         return
       }
       framesCount = msg
@@ -191,13 +189,11 @@ export class Transcoder {
       tryCalculate()
     })
     framecountWorker.on('error', (err) => {
-      console.error(`Cannot get frames count: ${err}`)
+      logError(`Cannot get frames count: ${err}`)
     })
     framecountWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(
-          new Error(`framecount-worker stopped with exit code ${code}`)
-        )
+        logError(new Error(`framecount-worker stopped with exit code ${code}`))
     })
   }
 
@@ -207,20 +203,18 @@ export class Transcoder {
     })
     screenshotWorker.on('message', (msg: string | { error: string }) => {
       if (typeof msg !== 'string') {
-        console.error(`screenshot-worker error: ${msg.error}`)
+        logError(`screenshot-worker error: ${msg.error}`)
         return
       }
-      if (this.options.showLogs) console.log(msg)
-      console.log('Screenshot worker done')
+      if (this.options.showLogs) logInfo(msg)
+      logInfo('Screenshot worker done')
     })
     screenshotWorker.on('error', (err) => {
-      console.error(`Cannot get screenshot: ${err}`)
+      logError(`Cannot get screenshot: ${err}`)
     })
     screenshotWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(
-          new Error(`screenshot-worker stopped with exit code ${code}`)
-        )
+        logError(new Error(`screenshot-worker stopped with exit code ${code}`))
     })
   }
 
@@ -241,7 +235,7 @@ export class Transcoder {
             this.totalFramesCount > 0
               ? ((this.currentFrames / this.totalFramesCount) * 100).toFixed(2)
               : '0.00'
-          console.log(
+          logInfo(
             `Job: ${
               this.name
             } | Progress: ${progressPct}% | FPS: ${this.currentFPS.toFixed(
@@ -253,25 +247,21 @@ export class Transcoder {
       }
       if ('done' in msg) {
         doneReceived = true
-        if (this.options.showLogs) console.log('Transcode worker done')
+        if (this.options.showLogs) logInfo('Transcode worker done')
         this.moveFinished(queue)
         this.autoPublish(queue)
-          .catch((err) =>
-            console.error(`Cannot auto-publish ${queue.name}: ${err}`)
-          )
+          .catch((err) => logError(`Cannot auto-publish ${queue.name}: ${err}`))
           .finally(() => {
             this.done()
           })
       }
     })
     transcodeWorker.on('error', (err) => {
-      console.error(`Cannot transcode: ${err}`)
+      logError(`Cannot transcode: ${err}`)
     })
     transcodeWorker.on('exit', (code) => {
       if (code !== 0) {
-        console.error(
-          new Error(`transcode-worker stopped with exit code ${code}`)
-        )
+        logError(new Error(`transcode-worker stopped with exit code ${code}`))
         if (!doneReceived) this.done()
       }
     })
@@ -317,7 +307,7 @@ ${r.height}.m3u8`
   private async autoPublish(queue: Queue) {
     if (queue.autoPublish) {
       if (queue.meta) {
-        if (this.options.showLogs) console.log(`Auto Publish ${queue.name}`)
+        if (this.options.showLogs) logInfo(`Auto Publish ${queue.name}`)
         await this.prisma.videoProcess.update({
           where: {
             id: queue.meta.id,
@@ -340,7 +330,7 @@ ${r.height}.m3u8`
             },
           },
         })
-        if (this.options.showLogs) console.log(`Auto Publish Done!`)
+        if (this.options.showLogs) logInfo(`Auto Publish Done!`)
       }
     }
     this.socketSend()

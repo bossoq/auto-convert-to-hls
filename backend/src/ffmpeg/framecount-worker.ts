@@ -2,6 +2,7 @@ import { spawn } from 'child_process'
 import { parentPort, workerData } from 'worker_threads'
 import type { Queue } from '../types'
 import { FrameCountCommand } from './default-renditions'
+import { logError } from '../logger'
 
 const getFramesCount = async () => {
   const { inputPath } = workerData as Queue
@@ -12,11 +13,11 @@ const getFramesCount = async () => {
     framesCount = parseInt(data.toString())
   })
   child.stderr.on('data', (data) => {
-    console.error(`ffprobe stderr: ${data}`)
+    logError(`ffprobe stderr: ${data}`)
     parentPort?.postMessage({ error: data.toString() })
   })
   child.on('error', (err) => {
-    console.error(`ffprobe spawn error: ${err}`)
+    logError(`ffprobe spawn error: ${err}`)
     parentPort?.postMessage({ error: err.message })
   })
   child.on('close', () => {

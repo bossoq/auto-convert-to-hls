@@ -1,7 +1,12 @@
 import { spawn } from 'child_process'
 import { parentPort, workerData } from 'worker_threads'
 import type { Queue } from '../types'
-import { DefaultRenditions, DefaultFPS, TranscodeCommand } from './default-renditions'
+import {
+  DefaultRenditions,
+  DefaultFPS,
+  TranscodeCommand,
+} from './default-renditions'
+import { logError } from '../logger'
 
 const transcode = async () => {
   const { inputPath, outputPath } = workerData as Queue
@@ -49,7 +54,12 @@ const transcode = async () => {
     const frameMatches = [...logs.matchAll(/frame=\s*(\d+)/g)]
     const fpsMatches = [...logs.matchAll(/fps=\s*(\d+\.?\d*)/g)]
     const speedMatches = [...logs.matchAll(/speed=\s*(\d+\.?\d*)x/g)]
-    if (frameMatches.length === 0 && fpsMatches.length === 0 && speedMatches.length === 0) return
+    if (
+      frameMatches.length === 0 &&
+      fpsMatches.length === 0 &&
+      speedMatches.length === 0
+    )
+      return
     if (frameMatches.length > 0)
       currentFrames = parseInt(frameMatches[frameMatches.length - 1][1])
     if (fpsMatches.length > 0)
@@ -78,12 +88,13 @@ const transcode = async () => {
     parseProgress(str)
   })
   child.on('error', (err) => {
-    console.error(`TRANSCODE SPAWN ERROR: ${err}`)
+    logError(`TRANSCODE SPAWN ERROR: ${err}`)
     sendDone()
   })
 
   child.on('close', (code) => {
-    if (code !== 0) console.error(`TRANSCODE FAILED (exit ${code}):\n${stderrBuffer}`)
+    if (code !== 0)
+      logError(`TRANSCODE FAILED (exit ${code}):\n${stderrBuffer}`)
     sendDone()
   })
 }

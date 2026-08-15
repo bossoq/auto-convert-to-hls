@@ -9,6 +9,7 @@ import {
 } from './watcher/pubsub'
 import { PrismaClient } from '@prisma/client'
 import type { Queue } from './types'
+import { logInfo, logError } from './logger'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
@@ -36,7 +37,7 @@ const getAllUnfinished = async () => {
         ],
       },
     })
-    console.log(`Found ${undownloaded.length} undownloaded files`)
+    logInfo(`Found ${undownloaded.length} undownloaded files`)
     for (const data of undownloaded) {
       const conferenceIds = await getConferences(data.spaceName)
       for (const conferenceId of conferenceIds) {
@@ -60,8 +61,8 @@ const getAllUnfinished = async () => {
               className: data.className,
             },
           }
-          console.log(`Downloaded ${file.name}`)
-          console.log(`Added ${file.name} to queue`)
+          logInfo(`Downloaded ${file.name}`)
+          logInfo(`Added ${file.name} to queue`)
           transcoder.add(file)
         }
       }
@@ -81,23 +82,23 @@ watcher.on('add', (path) => {
       inputPath: `${SourcePath}${splitName[1]}.mp4`,
       outputPath: `${DestPath}${splitName[1]}`,
     }
-    console.log(`Founded ${files.name}, checking for complete...`)
+    logInfo(`Founded ${files.name}, checking for complete...`)
     debouncer(files)
   }
 })
 
 watcher.on('ready', () => {
-  console.log('Auto HLS is ready')
+  logInfo('Auto HLS is ready')
   const previousFiles = getAllFiles(SourcePath)
-  console.log(`Found ${previousFiles.length} files`)
+  logInfo(`Found ${previousFiles.length} files`)
   transcoder.bulkAdd(previousFiles)
-  console.log('Starting watcher')
+  logInfo('Starting watcher')
 })
 
 pubsub()
   .then(async (sub) => {
     await getAllUnfinished()
-    console.log('Starting pubsub')
+    logInfo('Starting pubsub')
     const prisma = new PrismaClient()
     sub.on('message', async (message) => {
       if (
@@ -161,39 +162,39 @@ pubsub()
               className: videoData.className,
             },
           }
-          console.log(`Added ${files.name} to queue`)
+          logInfo(`Added ${files.name} to queue`)
           transcoder.add(files)
         }
         message.ack()
       } catch (err) {
-        console.error(`Failed to process pubsub message ${message.id}: ${err}`)
+        logError(`Failed to process pubsub message ${message.id}: ${err}`)
         message.nack()
       }
     })
     sub.on('error', (error) => {
-      console.error(error)
+      logError(error)
     })
   })
   .catch((err) => {
-    console.error('Pub/Sub ingestion failed to start:', err)
+    logError('Pub/Sub ingestion failed to start:', err)
   })
 
 const debouncer = (queue: Queue) => {
   if (timeoutArr.has(queue.name)) {
-    console.log(`${queue.name} is already in queue`)
+    logInfo(`${queue.name} is already in queue`)
     clearTimeout(timeoutArr.get(queue.name)!)
     timeoutArr.delete(queue.name)
   }
   const timer = setTimeout(() => {
-    console.log(`${queue.name} is completely transferred`)
+    logInfo(`${queue.name} is completely transferred`)
     clearTimeout(timeoutArr.get(queue.name)!)
-    console.log(`Added ${queue.name} to queue`)
+    logInfo(`Added ${queue.name} to queue`)
     transcoder.add(queue)
     timeoutArr.delete(queue.name)
   }, 10 * 1000)
   timeoutArr.set(queue.name, timer)
 }
 
-console.log(`Starting Express Server on port ${Port}`)
+logInfo(`Starting Express Server on port ${Port}`)
 export const server = new API(transcoder, CorsHost, parseInt(Port))
 transcoder.setIO(server.io)

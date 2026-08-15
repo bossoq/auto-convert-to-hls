@@ -5,6 +5,7 @@ import { google } from 'googleapis'
 import { writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import type { videoProcess } from '@prisma/client'
+import { logInfo, logError } from '../logger'
 
 const SourcePath = process.env.SOURCE || '/source/'
 const ProjectId = process.env.PROJECT_ID || ''
@@ -24,12 +25,12 @@ export const pubsub = async (): Promise<Subscription> => {
   })
 
   const [topic] = await pubsub.topic(TopicName).get({ autoCreate: true })
-  console.log(`Topic ${topic.name} is ready`)
+  logInfo(`Topic ${topic.name} is ready`)
 
   const [subscription] = await topic
     .subscription(SubscriptionName)
     .get({ autoCreate: true })
-  console.log(`Subscription ${subscription.name} is ready`)
+  logInfo(`Subscription ${subscription.name} is ready`)
 
   return subscription
 }
@@ -101,7 +102,7 @@ export const getDriveFile = async (
       throw new Error('Failed to get file')
     }
   } catch (error) {
-    console.error(`Failed to get Drive file ${fileId}: ${error}`)
+    logError(`Failed to get Drive file ${fileId}: ${error}`)
     throw new Error('Failed to get file')
   }
 }
