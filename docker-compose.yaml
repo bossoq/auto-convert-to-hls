@@ -13,6 +13,9 @@ services:
       - DEST
       - PORT
       - CORSHOST
+      - SOCKET_PATH
+      - PUBLIC_SOCKET_URL
+      - PUBLIC_SOCKET_PATH
     runtime: nvidia
     networks:
       br0:
