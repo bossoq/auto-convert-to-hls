@@ -17,12 +17,19 @@ export class API {
   private app: express.Application
   private port: number
   private corsOrigins: string | string[]
+  private socketPath: string
   private transcoder: Transcoder
   io: Server
-  constructor(transcoder: Transcoder, corsHost: string, port?: number) {
+  constructor(
+    transcoder: Transcoder,
+    corsHost: string,
+    port?: number,
+    socketPath?: string
+  ) {
     this.app = express()
     this.port = port || 3000
     this.corsOrigins = parseCorsOrigins(corsHost)
+    this.socketPath = socketPath || '/socket.io'
     this.transcoder = transcoder
     this.init()
   }
@@ -31,6 +38,7 @@ export class API {
     const server = http.createServer(this.app)
     logInfo(`Set CORS: ${this.corsOrigins}`)
     this.io = new Server(server, {
+      path: this.socketPath,
       cors: {
         origin: this.corsOrigins,
       },

@@ -15,6 +15,7 @@ const SourcePath = process.env.SOURCE || '/source/'
 const DestPath = process.env.DEST || '/dest/'
 const Port = process.env.PORT || '4000'
 const CorsHost = process.env.CORSHOST || 'https://vodstatus.picturo.us'
+const SocketPath = process.env.SOCKET_PATH || '/socket.io'
 
 const timeoutArr = new Map<string, NodeJS.Timeout>()
 
@@ -196,5 +197,5 @@ const debouncer = (queue: Queue) => {
 }
 
 logInfo(`Starting Express Server on port ${Port}`)
-export const server = new API(transcoder, CorsHost, parseInt(Port))
+export const server = new API(transcoder, CorsHost, parseInt(Port), SocketPath)
 transcoder.setIO(server.io)

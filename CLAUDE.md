@@ -90,6 +90,7 @@ Key models (`backend/prisma/schema.prisma`):
 | `DEST` | `/dest/` | Output directory for HLS segments |
 | `PORT` | `4000` | Backend API/Socket.io port |
 | `CORSHOST` | `https://vodstatus.picturo.us` | Allowed CORS origin |
+| `SOCKET_PATH` | `/socket.io` | Socket.io server endpoint path (set to match a reverse-proxy path prefix, e.g. `/socket`) |
 | `DATABASE_URL` | — | Prisma primary connection string |
 | `DIRECT_URL` | — | Prisma direct connection string |
 | `PROJECT_ID` | — | Google Cloud project ID |
@@ -99,7 +100,8 @@ Key models (`backend/prisma/schema.prisma`):
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject |
 | `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL for auto-published VOD entries |
-| `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server URL consumed by the web UI (`web/.env.public`) |
+| `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server origin consumed by the web UI at runtime via `$env/dynamic/public`. Must be a bare origin (`https://host[:port]`) with **no path** — any path segment is parsed by socket.io-client as a namespace, not a URL path, and will fail with "Invalid namespace" |
+| `PUBLIC_SOCKET_PATH` | `/socket.io` | Socket.io client endpoint path; must match `SOCKET_PATH` on the backend. Use this (not a path on `PUBLIC_SOCKET_URL`) to route through a reverse-proxy path prefix |
 
 ### Docker & CI
 

@@ -35,7 +35,8 @@
       .then(({ io }) => {
         if (cancelled) return
 
-        socket = io(env.PUBLIC_SOCKET_URL || '', {
+        socket = io(env.PUBLIC_SOCKET_URL || undefined, {
+          path: env.PUBLIC_SOCKET_PATH || '/socket.io',
           transports: ['websocket']
         })
 
