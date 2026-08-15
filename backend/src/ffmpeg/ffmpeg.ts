@@ -10,6 +10,10 @@ interface SocketEmitter {
   emit(event: string, data: unknown): boolean | void
 }
 
+type TranscodeWorkerMessage =
+  | { progress: { frames: number; fps: number; speed: number } }
+  | { done: true }
+
 export class Transcoder {
   private busy: boolean
   private queue: Queue[]
@@ -225,8 +229,8 @@ export class Transcoder {
       workerData: queue,
     })
     let doneReceived = false
-    transcodeWorker.on('message', (msg: any) => {
-      if (msg.progress) {
+    transcodeWorker.on('message', (msg: TranscodeWorkerMessage) => {
+      if ('progress' in msg) {
         this.currentFrames = msg.progress.frames
         this.currentFPS = msg.progress.fps
         this.currentSpeed = msg.progress.speed
@@ -247,7 +251,7 @@ export class Transcoder {
         }
         this.socketSend()
       }
-      if (msg.done) {
+      if ('done' in msg) {
         doneReceived = true
         if (this.options.showLogs) console.log('Transcode worker done')
         this.moveFinished(queue)

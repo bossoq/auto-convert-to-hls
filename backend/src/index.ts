@@ -71,7 +71,7 @@ const getAllUnfinished = async () => {
   }
 }
 
-const watcherChange = watcher.on('add', (path) => {
+watcher.on('add', (path) => {
   const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\\/(.+)\\.mp4$`)
   const splitName = path.match(re)
   if (splitName) {
@@ -92,7 +92,6 @@ watcher.on('ready', () => {
   console.log(`Found ${previousFiles.length} files`)
   transcoder.bulkAdd(previousFiles)
   console.log('Starting watcher')
-  watcherChange
 })
 
 pubsub()
