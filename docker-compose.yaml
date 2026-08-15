@@ -1,9 +1,8 @@
-version: '3'
-
 services:
   autohls:
     build: .
     container_name: autohls
+    restart: unless-stopped
     volumes:
       - /mnt/disks/CacheDrive/recordings:/source
       - /mnt/disks/SlowPhatty/VOD:/dest
@@ -21,5 +20,4 @@ services:
 
 networks:
   br0:
-    external:
-      name: br0
+    external: true

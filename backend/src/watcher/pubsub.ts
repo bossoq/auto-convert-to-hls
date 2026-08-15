@@ -57,7 +57,7 @@ export const getRecording = async (conferenceId: string): Promise<string[]> => {
       (recording) =>
         recording.driveDestination && recording.driveDestination.file
     )
-    .filter((fileId): fileId is string => fileId !== undefined)
+    .filter((fileId): fileId is string => fileId != null)
   return fileIds
 }
 
@@ -116,7 +116,7 @@ export const getConferences = async (spaceName: string): Promise<string[]> => {
   const conferenceIds = conferences
     .map((conference) => conference.name)
     .filter(
-      (conferenceId): conferenceId is string => conferenceId !== undefined
+      (conferenceId): conferenceId is string => conferenceId != null
     )
   return conferenceIds
 }
