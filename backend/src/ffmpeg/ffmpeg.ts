@@ -65,7 +65,10 @@ export class Transcoder {
       totalFramesCount: this.totalFramesCount,
       fps: this.currentFPS,
       speed: this.currentSpeed,
-      progress: ((this.currentFrames / this.totalFramesCount) * 100).toFixed(2),
+      progress:
+        this.totalFramesCount > 0
+          ? ((this.currentFrames / this.totalFramesCount) * 100).toFixed(2)
+          : '0.00',
     }
   }
 
@@ -92,9 +95,11 @@ export class Transcoder {
     if (this.options.showLogs) console.log(`Starting Job: ${this.name}`)
     try {
       const outputPath = await this.makeOutputDir(queue)
-      if (this.options.showLogs) console.log(`Create Output Path: ${outputPath}`)
+      if (this.options.showLogs)
+        console.log(`Create Output Path: ${outputPath}`)
       const masterPlaylist = await this.writePlaylist(queue)
-      if (this.options.showLogs) console.log(`Create Master Playlist: ${masterPlaylist}`)
+      if (this.options.showLogs)
+        console.log(`Create Master Playlist: ${masterPlaylist}`)
     } catch (err) {
       console.error(`Cannot prepare output for ${queue.name}: ${err}`)
       this.done()
@@ -139,9 +144,8 @@ export class Transcoder {
 
     const tryCalculate = () => {
       if (!fpsReady || !framesReady || fps === 0) return
-      this.totalFramesCount = parseInt(
-        ((framesCount * DefaultFPS) / fps).toFixed(0)
-      )
+      const computed = parseInt(((framesCount * DefaultFPS) / fps).toFixed(0))
+      this.totalFramesCount = Math.max(this.totalFramesCount, computed)
       if (this.options.showLogs)
         console.log(`Total Frames: ${this.totalFramesCount}`)
       this.socketSend()
@@ -165,7 +169,9 @@ export class Transcoder {
     })
     fpsWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(new Error(`fpscheck-worker stopped with exit code ${code}`))
+        console.error(
+          new Error(`fpscheck-worker stopped with exit code ${code}`)
+        )
     })
 
     const framecountWorker = new Worker('./src/ffmpeg/framecount-worker.ts', {
@@ -185,7 +191,9 @@ export class Transcoder {
     })
     framecountWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(new Error(`framecount-worker stopped with exit code ${code}`))
+        console.error(
+          new Error(`framecount-worker stopped with exit code ${code}`)
+        )
     })
   }
 
@@ -206,7 +214,9 @@ export class Transcoder {
     })
     screenshotWorker.on('exit', (code) => {
       if (code !== 0)
-        console.error(new Error(`screenshot-worker stopped with exit code ${code}`))
+        console.error(
+          new Error(`screenshot-worker stopped with exit code ${code}`)
+        )
     })
   }
 
@@ -222,15 +232,19 @@ export class Transcoder {
         this.currentSpeed = msg.progress.speed
         if (this.currentFrames > this.totalFramesCount)
           this.totalFramesCount = this.currentFrames
-        if (this.options.showLogs)
+        if (this.options.showLogs) {
+          const progressPct =
+            this.totalFramesCount > 0
+              ? ((this.currentFrames / this.totalFramesCount) * 100).toFixed(2)
+              : '0.00'
           console.log(
-            `Job: ${this.name} | Progress: ${(
-              (this.currentFrames / this.totalFramesCount) *
-              100
-            ).toFixed(2)}% | FPS: ${this.currentFPS.toFixed(
+            `Job: ${
+              this.name
+            } | Progress: ${progressPct}% | FPS: ${this.currentFPS.toFixed(
               2
             )} | Speed: ${this.currentSpeed.toFixed(2)}`
           )
+        }
         this.socketSend()
       }
       if (msg.done) {
@@ -238,7 +252,9 @@ export class Transcoder {
         if (this.options.showLogs) console.log('Transcode worker done')
         this.moveFinished(queue)
         this.autoPublish(queue)
-          .catch((err) => console.error(`Cannot auto-publish ${queue.name}: ${err}`))
+          .catch((err) =>
+            console.error(`Cannot auto-publish ${queue.name}: ${err}`)
+          )
           .finally(() => {
             this.done()
           })
@@ -249,7 +265,9 @@ export class Transcoder {
     })
     transcodeWorker.on('exit', (code) => {
       if (code !== 0) {
-        console.error(new Error(`transcode-worker stopped with exit code ${code}`))
+        console.error(
+          new Error(`transcode-worker stopped with exit code ${code}`)
+        )
         if (!doneReceived) this.done()
       }
     })

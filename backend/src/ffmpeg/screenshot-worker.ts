@@ -15,10 +15,6 @@ const getScreenshot = async () => {
     `${outputPath}/cover.jpg`,
   ])
   const child = spawn('ffmpeg', commands)
-  let logs = ''
-  child.stdout.on('data', (data) => {
-    logs += data.toString()
-  })
   child.stderr.on('data', (data) => {
     console.error(`ffmpeg stderr: ${data}`)
     parentPort?.postMessage({ error: data.toString() })
@@ -28,9 +24,7 @@ const getScreenshot = async () => {
     parentPort?.postMessage({ error: err.message })
   })
   child.on('close', () => {
-    if (parentPort) {
-      parentPort.postMessage(logs)
-    }
+    parentPort?.postMessage('done')
   })
 }
 

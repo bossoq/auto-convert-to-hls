@@ -21,7 +21,7 @@
     "backend",
     "web"
   ],
-  "dependencies": {
+  "devDependencies": {
     "vitest": "^2.0.0"
   }
 }

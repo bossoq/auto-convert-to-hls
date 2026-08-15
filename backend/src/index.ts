@@ -21,49 +21,53 @@ const transcoder = new Transcoder({ showLogs: true })
 
 const getAllUnfinished = async () => {
   const prisma = new PrismaClient()
-  const undownloaded = await prisma.videoProcess.findMany({
-    where: {
-      OR: [
-        {
-          downloaded: false,
-          processed: false,
-        },
-        {
-          downloaded: true,
-          processed: false,
-        },
-      ],
-    },
-  })
-  console.log(`Found ${undownloaded.length} undownloaded files`)
-  for (const data of undownloaded) {
-    const conferenceIds = await getConferences(data.spaceName)
-    for (const conferenceId of conferenceIds) {
-      const fileIds = await getRecording(conferenceId)
-      if (fileIds.length === 0) continue
-      const multipleFiles = fileIds.length > 1
-      for (const [idx, fileId] of fileIds.entries()) {
-        const driveFile = await getDriveFile(fileId, data, idx, multipleFiles)
-        await prisma.videoProcess.update({
-          where: { id: data.id },
-          data: { downloaded: true },
-        })
-        const file: Queue = {
-          name: driveFile.replace('.mp4', ''),
-          inputPath: `${SourcePath}google/${driveFile}`,
-          outputPath: `${DestPath}${driveFile.replace('.mp4', '')}`,
-          autoPublish: true,
-          meta: {
-            id: Number(data.id),
-            participants: data.participants as number[],
-            className: data.className,
+  try {
+    const undownloaded = await prisma.videoProcess.findMany({
+      where: {
+        OR: [
+          {
+            downloaded: false,
+            processed: false,
           },
+          {
+            downloaded: true,
+            processed: false,
+          },
+        ],
+      },
+    })
+    console.log(`Found ${undownloaded.length} undownloaded files`)
+    for (const data of undownloaded) {
+      const conferenceIds = await getConferences(data.spaceName)
+      for (const conferenceId of conferenceIds) {
+        const fileIds = await getRecording(conferenceId)
+        if (fileIds.length === 0) continue
+        const multipleFiles = fileIds.length > 1
+        for (const [idx, fileId] of fileIds.entries()) {
+          const driveFile = await getDriveFile(fileId, data, idx, multipleFiles)
+          await prisma.videoProcess.update({
+            where: { id: data.id },
+            data: { downloaded: true },
+          })
+          const file: Queue = {
+            name: driveFile.replace('.mp4', ''),
+            inputPath: `${SourcePath}google/${driveFile}`,
+            outputPath: `${DestPath}${driveFile.replace('.mp4', '')}`,
+            autoPublish: true,
+            meta: {
+              id: Number(data.id),
+              participants: data.participants as number[],
+              className: data.className,
+            },
+          }
+          console.log(`Downloaded ${file.name}`)
+          console.log(`Added ${file.name} to queue`)
+          transcoder.add(file)
         }
-        console.log(`Downloaded ${file.name}`)
-        console.log(`Added ${file.name} to queue`)
-        transcoder.add(file)
       }
     }
+  } finally {
+    await prisma.$disconnect()
   }
 }
 
@@ -91,87 +95,89 @@ watcher.on('ready', () => {
   watcherChange
 })
 
-pubsub().then(async (sub) => {
-  await getAllUnfinished()
-  console.log('Starting pubsub')
-  const prisma = new PrismaClient()
-  sub.on('message', async (message) => {
-    if (
-      message.attributes['ce-type'] !==
-      'google.workspace.meet.recording.v2.fileGenerated'
-    ) {
-      return
-    }
-    try {
-      const subject = message.attributes['ce-subject']
-      const spaceName = subject.match(
-        /^\/\/meet\.googleapis\.com\/(spaces\/.+)$/
-      )
-      if (!spaceName) {
-        message.ack()
+pubsub()
+  .then(async (sub) => {
+    await getAllUnfinished()
+    console.log('Starting pubsub')
+    const prisma = new PrismaClient()
+    sub.on('message', async (message) => {
+      if (
+        message.attributes['ce-type'] !==
+        'google.workspace.meet.recording.v2.fileGenerated'
+      ) {
         return
       }
-      const recordingPayload = JSON.parse(message.data.toString()).recording
-        .name as string
-      const conferenceRecord = recordingPayload.match(
-        /^(conferenceRecords\/.+)\/recordings\/.+$/
-      )
-      if (!conferenceRecord) {
-        message.ack()
-        return
-      }
-      const conferenceId = conferenceRecord[1]
-      const fileIds = await getRecording(conferenceId)
-      if (fileIds.length === 0) {
-        message.ack()
-        return
-      }
-      const videoData = await prisma.videoProcess.findFirst({
-        where: { spaceName: spaceName[1], processed: false },
-        orderBy: { createdAt: 'desc' },
-      })
-      if (!videoData) {
-        message.ack()
-        return
-      }
-      const multipleFiles = fileIds.length > 1
-      for (const [idx, fileId] of fileIds.entries()) {
-        const driveFile = await getDriveFile(
-          fileId,
-          videoData,
-          idx,
-          multipleFiles
+      try {
+        const subject = message.attributes['ce-subject']
+        const spaceName = subject.match(
+          /^\/\/meet\.googleapis\.com\/(spaces\/.+)$/
         )
-        await prisma.videoProcess.update({
-          where: { id: videoData.id },
-          data: { downloaded: true },
-        })
-        const files: Queue = {
-          name: driveFile.replace('.mp4', ''),
-          inputPath: `${SourcePath}google/${driveFile}`,
-          outputPath: `${DestPath}${driveFile.replace('.mp4', '')}`,
-          autoPublish: true,
-          meta: {
-            id: Number(videoData.id),
-            participants: videoData.participants as number[],
-            className: videoData.className,
-          },
+        if (!spaceName) {
+          message.ack()
+          return
         }
-        console.log(`Added ${files.name} to queue`)
-        transcoder.add(files)
+        const recordingPayload = JSON.parse(message.data.toString()).recording
+          .name as string
+        const conferenceRecord = recordingPayload.match(
+          /^(conferenceRecords\/.+)\/recordings\/.+$/
+        )
+        if (!conferenceRecord) {
+          message.ack()
+          return
+        }
+        const conferenceId = conferenceRecord[1]
+        const fileIds = await getRecording(conferenceId)
+        if (fileIds.length === 0) {
+          message.ack()
+          return
+        }
+        const videoData = await prisma.videoProcess.findFirst({
+          where: { spaceName: spaceName[1], processed: false },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (!videoData) {
+          message.ack()
+          return
+        }
+        const multipleFiles = fileIds.length > 1
+        for (const [idx, fileId] of fileIds.entries()) {
+          const driveFile = await getDriveFile(
+            fileId,
+            videoData,
+            idx,
+            multipleFiles
+          )
+          await prisma.videoProcess.update({
+            where: { id: videoData.id },
+            data: { downloaded: true },
+          })
+          const files: Queue = {
+            name: driveFile.replace('.mp4', ''),
+            inputPath: `${SourcePath}google/${driveFile}`,
+            outputPath: `${DestPath}${driveFile.replace('.mp4', '')}`,
+            autoPublish: true,
+            meta: {
+              id: Number(videoData.id),
+              participants: videoData.participants as number[],
+              className: videoData.className,
+            },
+          }
+          console.log(`Added ${files.name} to queue`)
+          transcoder.add(files)
+        }
+        message.ack()
+      } catch (err) {
+        console.error(`Failed to process pubsub message ${message.id}: ${err}`)
+        message.nack()
       }
-      message.ack()
-    } catch (err) {
-      console.error(`Failed to process pubsub message ${message.id}: ${err}`)
-      message.nack()
-    }
+    })
+    sub.on('error', (error) => {
+      console.error(error)
+    })
   })
-  sub.on('error', (error) => {
-    console.error(error)
+  .catch((err) => {
+    console.error('Pub/Sub ingestion failed to start:', err)
   })
-}).catch((err) => {
-  console.error('Pub/Sub ingestion failed to start:', err)
-})
 
 const debouncer = (queue: Queue) => {
   if (timeoutArr.has(queue.name)) {

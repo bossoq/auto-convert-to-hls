@@ -3,11 +3,9 @@ import { writable } from 'svelte/store'
 import type { Writable } from 'svelte/store'
 
 const storage = browser ? JSON.parse(window.localStorage['prefs'] || '{}') || {} : {}
-storage.darkTheme = browser
-  ? window.matchMedia('(prefers-color-scheme: dark)').matches
-    ? true
-    : false
-  : false
+if (storage.darkTheme === undefined) {
+  storage.darkTheme = browser ? window.matchMedia('(prefers-color-scheme: dark)').matches : false
+}
 
 const storeSettings = () => {
   if (browser) {

@@ -8,17 +8,22 @@ vi.mock('chokidar', () => ({
 vi.mock('fs', () => ({
   default: {
     readdirSync: vi.fn().mockReturnValue([]),
-    existsSync: vi.fn().mockReturnValue(true),
-    mkdirSync: vi.fn(),
-    writeFileSync: vi.fn(),
-    renameSync: vi.fn(),
   },
 }))
 
 import fs from 'fs'
+import { watch as chokidarWatch } from 'chokidar'
 import { getAllFiles } from '../watcher/watcher'
 
 const mockReaddirSync = vi.mocked(fs.readdirSync)
+
+// watcher.ts passes `ignored` as part of the chokidar.watch() options at
+// module load — pull it out of the mock's captured call args so the regex
+// logic gets direct coverage instead of only being exercised indirectly.
+const watchOptions = vi.mocked(chokidarWatch).mock.calls[0][1] as {
+  ignored: (file: string) => boolean
+}
+const { ignored } = watchOptions
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -80,5 +85,27 @@ describe('getAllFiles', () => {
     mockReaddirSync.mockReturnValue(['local.mp4'] as any)
     const result = getAllFiles('/source/')
     expect(result[0].autoPublish).toBeUndefined()
+  })
+})
+
+describe('ignored', () => {
+  it('does not ignore a plain .mp4 path', () => {
+    expect(ignored('/source/recording.mp4')).toBe(false)
+  })
+
+  it('ignores hidden dotfiles', () => {
+    expect(ignored('/source/.recording.mp4')).toBe(true)
+  })
+
+  it('ignores paths under /google/', () => {
+    expect(ignored('/source/google/recording.mp4')).toBe(true)
+  })
+
+  it('ignores paths without a real .mp4 extension', () => {
+    // Regression test: an earlier version of this regex lost its escaped
+    // dot inside the template literal, making "." match any character and
+    // leaving the match unanchored at the end — so a file like this one
+    // (extension "txt", not "mp4") was incorrectly treated as a match.
+    expect(ignored('/source/testXmp4extra.txt')).toBe(true)
   })
 })

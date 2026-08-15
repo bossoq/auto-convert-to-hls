@@ -95,7 +95,7 @@ export const getDriveFile = async (
     })
     if (file.status === 200) {
       const data = file.data as unknown as Blob
-      await writeFile(fullPath, Buffer.from(await data.arrayBuffer()))
+      await writeFile(fullPath, new Uint8Array(await data.arrayBuffer()))
       return fileName
     } else {
       throw new Error('Failed to get file')
@@ -115,8 +115,6 @@ export const getConferences = async (spaceName: string): Promise<string[]> => {
   })
   const conferenceIds = conferences
     .map((conference) => conference.name)
-    .filter(
-      (conferenceId): conferenceId is string => conferenceId != null
-    )
+    .filter((conferenceId): conferenceId is string => conferenceId != null)
   return conferenceIds
 }
