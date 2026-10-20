@@ -12,7 +12,7 @@ const ProjectId = process.env.PROJECT_ID || ''
 const TopicName = process.env.TOPIC_NAME || ''
 const SubscriptionName = process.env.SUBSCRIPTION_NAME || ''
 const ClientEmail = process.env.CLIENT_EMAIL || ''
-const PrivateKey = process.env.PRIVATE_KEY || ''
+const PrivateKey = (process.env.PRIVATE_KEY || '').replace(/\\n/g, '\n')
 const Subject = process.env.SUBJECT || ''
 
 export const pubsub = async (): Promise<Subscription> => {
