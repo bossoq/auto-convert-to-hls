@@ -45,3 +45,34 @@ jobs:
           tags: ghcr.io/${{ github.repository }}:${{ steps.sha.outputs.sha }},ghcr.io/${{ github.repository }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Deploy to homelab Portainer (GitOps): bump pinned :<sha> in deploy repo + fire webhook
+  deploy:
+    name: Deploy to Portainer (GitOps)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.event.workflow_run.conclusion == 'success'
+    steps:
+      - name: Checkout deploy repo
+        uses: actions/checkout@v4
+        with:
+          repository: bossoq/homelab-portainer-deploy
+          token: ${{ secrets.DEPLOY_REPO_TOKEN }}
+      - name: Bump pinned image tag + push
+        run: |
+          TAG="$(echo '${{ github.event.workflow_run.head_sha }}' | cut -c1-7)"
+          sed -i -E "s#(ghcr\.io/bossoq/auto-convert-to-hls):[^\"[:space:]]+#\1:${TAG}#g" \
+            auto-convert-to-hls/docker-compose.yml
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then echo "no change"; else
+            git commit -am "auto-convert-to-hls: deploy ${TAG}"
+            git push
+          fi
+      - name: Trigger Portainer redeploy (via Cloudflare Access)
+        run: |
+          sleep 5
+          curl -fsS -X POST \
+            -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
+            -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
+            "https://portainer.picturo.us/api/stacks/webhooks/93f7cf0a-37b1-417e-a19a-89e2d91632ce"
