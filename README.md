@@ -119,6 +119,7 @@ Socket.io emits `status` and `queue` events on every state change, used by the w
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject (impersonated user) |
 | `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL prepended to job name for auto-published VOD entries |
+| `REPLAY_MAX_AGE_DAYS` | `30` | On startup, only unprocessed recordings created within this many days are re-checked (Meet keeps conference records ~30 days) |
 | `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server URL for the web UI (set in `web/.env.public`) |
 
 ## License

@@ -54,7 +54,7 @@ The system automatically converts MP4 recordings to multi-rendition HLS for vide
 
 **Ingestion path 1 — filesystem watcher** (`watcher/watcher.ts`): Chokidar watches the top level of the `SOURCE` directory (default `/source/`, `depth: 0`) for new `.mp4` files; hidden files and anything in subdirectories (`google/`, `converted/`) are excluded by `isIgnored()`. The predicate must never ignore the `SOURCE` root itself — chokidar evaluates it too, and ignoring it silently disables the watcher. `awaitWriteFinish` (10 s stable size) plus a 10-second debounce in `index.ts` wait for file transfers to complete before enqueuing.
 
-**Ingestion path 2 — Google Pub/Sub** (`watcher/pubsub.ts`): Listens for `google.workspace.meet.recording.v2.fileGenerated` events. On receipt, downloads the recording from Google Drive into `SOURCE/google/`, then enqueues it for transcoding. On startup, `getAllUnfinished()` replays any records in Prisma with `downloaded=false` or `processed=false`.
+**Ingestion path 2 — Google Pub/Sub** (`watcher/pubsub.ts`): Listens for `google.workspace.meet.recording.v2.fileGenerated` events. On receipt, downloads the recording from Google Drive into `SOURCE/google/`, then enqueues it for transcoding. On startup, `getAllUnfinished()` replays `processed=false` records created within the last `REPLAY_MAX_AGE_DAYS` (default 30, see `watcher/unfinished.ts`) — older rows can't yield a recording (Meet keeps conference records ~30 days; rooms that were never recorded stay unprocessed forever).
 
 **Transcoder** (`ffmpeg/ffmpeg.ts`): A singleton `Transcoder` class with an internal queue. Jobs are processed one at a time. For each job it:
 1. Creates the output directory under `DEST`
@@ -100,6 +100,7 @@ Key models (`backend/prisma/schema.prisma`):
 | `PRIVATE_KEY` | — | Service account private key |
 | `SUBJECT` | — | Domain-wide delegation subject |
 | `VOD_BASE_URL` | `https://vod.supapanya.com` | Base URL for auto-published VOD entries |
+| `REPLAY_MAX_AGE_DAYS` | `30` | Startup replay only re-checks unprocessed `videoProcess` rows created within this many days |
 | `PUBLIC_SOCKET_URL` | _(same origin)_ | Socket.io server origin consumed by the web UI at runtime via `$env/dynamic/public`. Must be a bare origin (`https://host[:port]`) with **no path** — any path segment is parsed by socket.io-client as a namespace, not a URL path, and will fail with "Invalid namespace" |
 | `PUBLIC_SOCKET_PATH` | `/socket.io` | Socket.io client endpoint path; must match `SOCKET_PATH` on the backend. Use this (not a path on `PUBLIC_SOCKET_URL`) to route through a reverse-proxy path prefix |
 
@@ -108,14 +109,14 @@ Key models (`backend/prisma/schema.prisma`):
 `docker-compose.yaml` mounts host paths and uses `runtime: nvidia`, passing `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES` to the container.
 
 Four GitHub Actions workflows:
-- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 56 tests) on Node 24 for every push and PR to `main`.
+- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 61 tests) on Node 24 for every push and PR to `main`.
 - `.github/workflows/main.yml` ("CI") — on every push, runs `yarn web lint` then `yarn web build` (lints and builds the web workspace on Node 24).
 - `.github/workflows/docker.yml` — builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with short SHA and `latest`.
 - `.github/workflows/release.yml` — on a PR merged into `main` that carries the `release` label, reads the version from `package.json`, creates a GitHub Release (`v<version>`), and pushes a versioned + `latest` image. (The old `/release` body marker is no longer used.)
 
 ### Testing
 
-Tests live in `backend/src/__tests__/` (`renditions`, `watcher`, `transcoder`, `express`). All tests mock Worker threads, PrismaClient, and fs — no GPU, database, or ffmpeg required to run them. Run them with `yarn test` (requires Node 24).
+Tests live in `backend/src/__tests__/` (`renditions`, `watcher`, `transcoder`, `express`, `unfinished`). All tests mock Worker threads, PrismaClient, and fs — no GPU, database, or ffmpeg required to run them. Run them with `yarn test` (requires Node 24).
 
 ### Hardware Dependency
 

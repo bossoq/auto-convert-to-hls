@@ -2,6 +2,7 @@ import path from 'path'
 import { Transcoder } from './ffmpeg/ffmpeg'
 import { API } from './api/express'
 import { getAllFiles, watcher } from './watcher/watcher'
+import { replayMaxAgeDays, unfinishedWhere } from './watcher/unfinished'
 import {
   pubsub,
   getRecording,
@@ -25,21 +26,13 @@ const transcoder = new Transcoder({ showLogs: true })
 const getAllUnfinished = async () => {
   const prisma = new PrismaClient()
   try {
+    const maxAgeDays = replayMaxAgeDays()
     const undownloaded = await prisma.videoProcess.findMany({
-      where: {
-        OR: [
-          {
-            downloaded: false,
-            processed: false,
-          },
-          {
-            downloaded: true,
-            processed: false,
-          },
-        ],
-      },
+      where: unfinishedWhere(new Date(), maxAgeDays),
     })
-    logInfo(`Found ${undownloaded.length} undownloaded files`)
+    logInfo(
+      `Found ${undownloaded.length} unfinished recordings from the last ${maxAgeDays} days`
+    )
     for (const data of undownloaded) {
       const conferenceIds = await getConferences(data.spaceName)
       for (const conferenceId of conferenceIds) {
