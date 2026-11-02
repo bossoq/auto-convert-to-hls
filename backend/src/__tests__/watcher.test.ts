@@ -21,7 +21,9 @@ const mockReaddirSync = vi.mocked(fs.readdirSync)
 // module load — pull it out of the mock's captured call args so the regex
 // logic gets direct coverage instead of only being exercised indirectly.
 const watchOptions = vi.mocked(chokidarWatch).mock.calls[0][1] as {
-  ignored: (file: string) => boolean
+  ignored: (file: string, stats?: { isDirectory: () => boolean }) => boolean
+  depth: number
+  awaitWriteFinish: { stabilityThreshold: number }
 }
 const { ignored } = watchOptions
 
@@ -107,5 +109,31 @@ describe('ignored', () => {
     // leaving the match unanchored at the end — so a file like this one
     // (extension "txt", not "mp4") was incorrectly treated as a match.
     expect(ignored('/source/testXmp4extra.txt')).toBe(true)
+  })
+
+  it('does not ignore the SOURCE root itself (with or without trailing slash)', () => {
+    // Regression test: the root failed the *.mp4 match and was ignored, which
+    // made chokidar watch nothing — new drops were only seen on restart.
+    expect(ignored('/source')).toBe(false)
+    expect(ignored('/source/')).toBe(false)
+    expect(ignored('/source', { isDirectory: () => true })).toBe(false)
+  })
+
+  it('ignores mp4s in subdirectories such as converted/', () => {
+    expect(ignored('/source/converted/old.mp4')).toBe(true)
+  })
+
+  it('ignores a directory entry even if it is named like an mp4', () => {
+    expect(ignored('/source/weird.mp4', { isDirectory: () => true })).toBe(true)
+  })
+})
+
+describe('watch options', () => {
+  it('only watches the top level of SOURCE', () => {
+    expect(watchOptions.depth).toBe(0)
+  })
+
+  it('waits for writes to finish before emitting add', () => {
+    expect(watchOptions.awaitWriteFinish.stabilityThreshold).toBeGreaterThan(0)
   })
 })

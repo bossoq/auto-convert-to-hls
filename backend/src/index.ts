@@ -1,3 +1,4 @@
+import path from 'path'
 import { Transcoder } from './ffmpeg/ffmpeg'
 import { API } from './api/express'
 import { getAllFiles, watcher } from './watcher/watcher'
@@ -73,19 +74,16 @@ const getAllUnfinished = async () => {
   }
 }
 
-watcher.on('add', (path) => {
-  const re = new RegExp(`${SourcePath.replace(/\W/g, '')}\\/(.+)\\.mp4$`)
-  const splitName = path.match(re)
-  if (splitName) {
-    if (splitName[1].startsWith('.')) return
-    const files: Queue = {
-      name: splitName[1],
-      inputPath: `${SourcePath}${splitName[1]}.mp4`,
-      outputPath: `${DestPath}${splitName[1]}`,
-    }
-    logInfo(`Founded ${files.name}, checking for complete...`)
-    debouncer(files)
+// isIgnored() guarantees this is a visible *.mp4 directly inside SOURCE
+watcher.on('add', (filePath) => {
+  const name = path.basename(filePath, '.mp4')
+  const files: Queue = {
+    name,
+    inputPath: `${SourcePath}${name}.mp4`,
+    outputPath: `${DestPath}${name}`,
   }
+  logInfo(`Founded ${files.name}, checking for complete...`)
+  debouncer(files)
 })
 
 watcher.on('ready', () => {

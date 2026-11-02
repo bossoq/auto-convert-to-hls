@@ -14,6 +14,7 @@ interface SocketEmitter {
 type TranscodeWorkerMessage =
   | { progress: { frames: number; fps: number; speed: number } }
   | { done: true }
+  | { failed: string }
 
 export class Transcoder {
   private busy: boolean
@@ -101,9 +102,6 @@ export class Transcoder {
     try {
       const outputPath = await this.makeOutputDir(queue)
       if (this.options.showLogs) logInfo(`Create Output Path: ${outputPath}`)
-      const masterPlaylist = await this.writePlaylist(queue)
-      if (this.options.showLogs)
-        logInfo(`Create Master Playlist: ${masterPlaylist}`)
     } catch (err) {
       logError(`Cannot prepare output for ${queue.name}: ${err}`)
       this.done()
@@ -222,7 +220,7 @@ export class Transcoder {
     const transcodeWorker = new Worker('./src/ffmpeg/transcode-worker.ts', {
       workerData: queue,
     })
-    let doneReceived = false
+    let resultReceived = false
     transcodeWorker.on('message', (msg: TranscodeWorkerMessage) => {
       if ('progress' in msg) {
         this.currentFrames = msg.progress.frames
@@ -245,12 +243,18 @@ export class Transcoder {
         }
         this.socketSend()
       }
+      if ('failed' in msg) {
+        resultReceived = true
+        // Leave the source in place (retried on next startup scan / pubsub
+        // replay) and do not write index.m3u8 or publish a broken video.
+        logError(`Transcode failed for ${queue.name}: ${msg.failed}`)
+        this.done()
+      }
       if ('done' in msg) {
-        doneReceived = true
+        resultReceived = true
         if (this.options.showLogs) logInfo('Transcode worker done')
-        this.moveFinished(queue)
-        this.autoPublish(queue)
-          .catch((err) => logError(`Cannot auto-publish ${queue.name}: ${err}`))
+        this.finish(queue)
+          .catch((err) => logError(`Cannot finish ${queue.name}: ${err}`))
           .finally(() => {
             this.done()
           })
@@ -262,9 +266,19 @@ export class Transcoder {
     transcodeWorker.on('exit', (code) => {
       if (code !== 0) {
         logError(new Error(`transcode-worker stopped with exit code ${code}`))
-        if (!doneReceived) this.done()
+        if (!resultReceived) this.done()
       }
     })
+  }
+
+  // Runs only after a clean transcode: the master playlist is written last so
+  // a folder never advertises renditions that were not fully produced.
+  private async finish(queue: Queue) {
+    const masterPlaylist = await this.writePlaylist(queue)
+    if (this.options.showLogs)
+      logInfo(`Create Master Playlist: ${masterPlaylist}`)
+    this.moveFinished(queue)
+    await this.autoPublish(queue)
   }
 
   private makeOutputDir(queue: Queue): Promise<string> {

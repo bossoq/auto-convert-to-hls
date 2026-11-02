@@ -72,11 +72,13 @@ const transcode = async () => {
   }
 
   let stderrBuffer = ''
-  let doneSent = false
-  const sendDone = () => {
-    if (doneSent) return
-    doneSent = true
-    parentPort?.postMessage({ done: true })
+  let resultSent = false
+  // Report exactly once: { done } only for a clean ffmpeg exit, { failed }
+  // otherwise, so the parent never publishes a half-written rendition set.
+  const sendResult = (failure?: string) => {
+    if (resultSent) return
+    resultSent = true
+    parentPort?.postMessage(failure ? { failed: failure } : { done: true })
   }
 
   child.stdout.on('data', (data) => {
@@ -89,13 +91,16 @@ const transcode = async () => {
   })
   child.on('error', (err) => {
     logError(`TRANSCODE SPAWN ERROR: ${err}`)
-    sendDone()
+    sendResult(`spawn error: ${err}`)
   })
 
   child.on('close', (code) => {
-    if (code !== 0)
+    if (code !== 0) {
       logError(`TRANSCODE FAILED (exit ${code}):\n${stderrBuffer}`)
-    sendDone()
+      sendResult(`ffmpeg exited with code ${code}`)
+      return
+    }
+    sendResult()
   })
 }
 
