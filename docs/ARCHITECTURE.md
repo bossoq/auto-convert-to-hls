@@ -106,7 +106,7 @@ records on completion.
 
 ```mermaid
 flowchart TD
-    A["Chokidar 'add' event<br/>on SOURCE/**/*.mp4"] --> B{Hidden file<br/>or under google/?}
+    A["Chokidar 'add' event<br/>on SOURCE/*.mp4 (depth 0,<br/>size stable 10s)"] --> B{Hidden file<br/>or in a subdirectory?}
     B -->|yes| Z["ignore"]
     B -->|no| C["debouncer(queue)"]
     C --> D{Already pending?}
@@ -118,8 +118,11 @@ flowchart TD
 ```
 
 On startup, `watcher` also emits `ready`; `getAllFiles(SOURCE)` collects
-pre-existing files and `transcoder.bulkAdd()` enqueues them. The 10-second
-debounce (`index.ts`) prevents transcoding a file that is still being copied.
+pre-existing files and `transcoder.bulkAdd()` enqueues them. `awaitWriteFinish`
+(size stable for 10 s) plus the 10-second debounce (`index.ts`) prevent
+transcoding a file that is still being copied. `isIgnored()` must never ignore
+the `SOURCE` root itself: chokidar evaluates the predicate on the root too, and
+ignoring it silently disables the watcher.
 
 ### 3.2 Google Meet via Pub/Sub
 
@@ -166,8 +169,7 @@ flowchart TD
     START -->|yes| WAIT["wait"]
     START -->|no| SHIFT["shift job → set busy"]
     SHIFT --> MKDIR["makeOutputDir → DEST/&lt;name&gt;"]
-    MKDIR --> PLAY["writePlaylist → index.m3u8 (master)"]
-    PLAY --> FAN
+    MKDIR --> FAN
 
     subgraph FAN["Concurrent worker threads"]
         direction LR
@@ -178,7 +180,10 @@ flowchart TD
 
     FC -->|totalFramesCount| PROG
     TC -->|progress msgs| PROG["update frames/fps/speed<br/>→ socketSend()"]
-    TC -->|done| MOVE["moveFinished →<br/>SOURCE/converted/&lt;name&gt;.mp4"]
+    TC -->|"failed / crash"| FAIL["log error, keep source<br/>(no playlist, no publish)"]
+    FAIL --> DONE
+    TC -->|done| PLAY["writePlaylist → index.m3u8<br/>(master, written last)"]
+    PLAY --> MOVE["moveFinished →<br/>SOURCE/converted/&lt;name&gt;.mp4"]
     MOVE --> PUB{autoPublish?}
     PUB -->|yes| DB["mark processed +<br/>create videoTable + videoAccess"]
     PUB -->|no| DONE

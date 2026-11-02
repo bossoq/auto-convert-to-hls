@@ -69,7 +69,7 @@ Pre-built images are published to `ghcr.io/bossoq/auto-convert-to-hls` on every 
 
 ### Ingestion
 
-**Filesystem watcher:** Chokidar watches the `SOURCE` directory for new `.mp4` files. Files in the `google/` subdirectory and hidden files are ignored. A 10-second debounce ensures the file is fully written before transcoding begins.
+**Filesystem watcher:** Chokidar watches the top level of the `SOURCE` directory for new `.mp4` files. Files in subdirectories (`google/`, `converted/`) and hidden files are ignored. A file is only picked up once its size has been stable for 10 seconds, plus a 10-second debounce, so it is fully written before transcoding begins. Tip: copy under a `.`-prefixed name and rename when done.
 
 **Google Meet (Pub/Sub):** Listens for `google.workspace.meet.recording.v2.fileGenerated` events. Downloads the recording from Google Drive into `SOURCE/google/`, then enqueues it. On startup, any previously unprocessed records in the database are replayed automatically.
 
@@ -78,9 +78,8 @@ Pre-built images are published to `ghcr.io/bossoq/auto-convert-to-hls` on every 
 Jobs are processed one at a time. For each MP4:
 
 1. Output directory created under `DEST`
-2. HLS master playlist (`index.m3u8`) written
-3. Thumbnail captured at 00:00:10 as `cover.jpg`
-4. Transcoded to four renditions using NVIDIA cuvid (`h264_cuvid`):
+2. Thumbnail captured at 00:00:10 as `cover.jpg`
+3. Transcoded to four renditions using NVIDIA cuvid (`h264_cuvid`):
 
    | Resolution | Video bitrate | Audio bitrate |
    |---|---|---|
@@ -89,6 +88,7 @@ Jobs are processed one at a time. For each MP4:
    | 720p | 2800k | 128k |
    | 1080p | 5000k | 192k |
 
+4. HLS master playlist (`index.m3u8`) written — only after ffmpeg exits cleanly, so a failed job never leaves a playable-looking folder. A failed job is logged and skipped: the source stays in place and nothing is published.
 5. Source file moved to a `converted/` subdirectory
 
 For Google Meet recordings with `autoPublish` enabled, the job also marks the `videoProcess` record as processed and creates a `videoTable` entry in the database.

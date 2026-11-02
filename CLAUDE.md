@@ -52,16 +52,16 @@ The system automatically converts MP4 recordings to multi-rendition HLS for vide
 
 ### Backend (`backend/src/`)
 
-**Ingestion path 1 — filesystem watcher** (`watcher/watcher.ts`): Chokidar watches the `SOURCE` directory (default `/source/`) for new `.mp4` files. Hidden files and files under `google/` are excluded. A 10-second debounce in `index.ts` waits for file transfers to complete before enqueuing.
+**Ingestion path 1 — filesystem watcher** (`watcher/watcher.ts`): Chokidar watches the top level of the `SOURCE` directory (default `/source/`, `depth: 0`) for new `.mp4` files; hidden files and anything in subdirectories (`google/`, `converted/`) are excluded by `isIgnored()`. The predicate must never ignore the `SOURCE` root itself — chokidar evaluates it too, and ignoring it silently disables the watcher. `awaitWriteFinish` (10 s stable size) plus a 10-second debounce in `index.ts` wait for file transfers to complete before enqueuing.
 
 **Ingestion path 2 — Google Pub/Sub** (`watcher/pubsub.ts`): Listens for `google.workspace.meet.recording.v2.fileGenerated` events. On receipt, downloads the recording from Google Drive into `SOURCE/google/`, then enqueues it for transcoding. On startup, `getAllUnfinished()` replays any records in Prisma with `downloaded=false` or `processed=false`.
 
 **Transcoder** (`ffmpeg/ffmpeg.ts`): A singleton `Transcoder` class with an internal queue. Jobs are processed one at a time. For each job it:
 1. Creates the output directory under `DEST`
-2. Writes an HLS master playlist (`index.m3u8`)
-3. Spawns three concurrent worker threads: `fpscheck-worker.ts` + `framecount-worker.ts` (for progress tracking), `screenshot-worker.ts` (cover image at 00:00:10), and `transcode-worker.ts` (actual encoding)
-4. Transcodes to 4 renditions (360p/480p/720p/1080p) using NVIDIA cuvid hardware acceleration (`h264_cuvid`)
-5. Moves the source file to a `converted/` subdirectory
+2. Spawns three concurrent worker threads: `fpscheck-worker.ts` + `framecount-worker.ts` (for progress tracking), `screenshot-worker.ts` (cover image at 00:00:10), and `transcode-worker.ts` (actual encoding)
+3. Transcodes to 4 renditions (360p/480p/720p/1080p) using NVIDIA cuvid hardware acceleration (`h264_cuvid`). The transcode worker reports `{ done }` only on a clean ffmpeg exit, otherwise `{ failed }`.
+4. On `{ failed }` (or a worker crash): logs the error and moves on — no master playlist, no move, no publish; the source stays in place for a retry.
+5. On `{ done }` (`finish()`): writes the HLS master playlist (`index.m3u8`) **last**, so a folder never advertises renditions that were not fully produced, then moves the source file to a `converted/` subdirectory
 6. If `autoPublish=true` (set only on the Pub/Sub ingestion path), runs `autoPublish()`: marks `videoProcess.processed=true`, then creates a `videoTable` record (`name`=`className`, `baseUrl`=`${VOD_BASE_URL}/${name}`, `type='vod'`, `allowAll=false`, `fileType='HLS'`) and one `videoAccess` join row per participant user id carried in `queue.meta.participants`.
 
 After each transcode step, progress is broadcast to all connected Socket.io clients.
@@ -108,7 +108,7 @@ Key models (`backend/prisma/schema.prisma`):
 `docker-compose.yaml` mounts host paths and uses `runtime: nvidia`, passing `NVIDIA_VISIBLE_DEVICES`/`NVIDIA_DRIVER_CAPABILITIES` to the container.
 
 Four GitHub Actions workflows:
-- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 42 tests) on Node 24 for every push and PR to `main`.
+- `.github/workflows/test.yml` — runs `yarn test` (Vitest, 56 tests) on Node 24 for every push and PR to `main`.
 - `.github/workflows/main.yml` ("CI") — on every push, runs `yarn web lint` then `yarn web build` (lints and builds the web workspace on Node 24).
 - `.github/workflows/docker.yml` — builds and pushes to `ghcr.io/bossoq/auto-convert-to-hls` on every push to `main`, tagged with short SHA and `latest`.
 - `.github/workflows/release.yml` — on a PR merged into `main` that carries the `release` label, reads the version from `package.json`, creates a GitHub Release (`v<version>`), and pushes a versioned + `latest` image. (The old `/release` body marker is no longer used.)
