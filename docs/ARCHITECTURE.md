@@ -151,9 +151,16 @@ sequenceDiagram
 ```
 
 **Startup replay** — `getAllUnfinished()` queries `videoProcess` for records
-that are not yet `processed` (downloaded or not), re-resolves their conferences
-and recordings via `getConferences`/`getRecording`, downloads, and enqueues
-them. This makes ingestion resilient to restarts and missed messages.
+that are not yet `processed` (downloaded or not) **and were created within the
+last `REPLAY_MAX_AGE_DAYS` (default 30)**, re-resolves their conferences and
+recordings via `getConferences`/`getRecording`, downloads, and enqueues them.
+This makes ingestion resilient to restarts and missed messages. The age cutoff
+exists because the Meet API only keeps conference records for ~30 days, and
+because a `videoProcess` row is created for every classroom (it doubles as the
+live-room access list) whether or not the meeting is ever recorded — such rows
+can never become `processed` and would otherwise be replayed forever. A
+recording missed for longer than the window must be recovered manually from the
+organizer's Drive.
 
 ---
 
